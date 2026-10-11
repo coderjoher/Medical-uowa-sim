@@ -61,7 +61,7 @@ real lab, real users or a sign-off, and some are partly built (see notes).
 **Exit checklist**
 - [ ] `[int]` `docker compose up` on a clean machine brings up all services; health endpoint returns OK.
 - [ ] `[manual]` App is reachable over HTTPS from a lab PC on the campus LAN with **no internet** connection.
-- [ ] `[int]` CI runs lint + typecheck + unit tests and blocks merge on failure.
+- [x] `[int]` CI runs lint + typecheck + unit tests and blocks merge on failure. (GitHub Actions run 38146918764 green; also runs build and browser tests. Blocking merges needs a branch-protection rule in GitHub settings.)
 - [ ] `[perf]` Babylon.js test scene (placeholder room + one low-poly patient) runs **≥ 60 fps** at native resolution on the lab PC.
 - [ ] `[perf]` MediaPipe Hand Landmarker (GPU, Web Worker) runs **≥ 30 fps** on the lab PC while the test scene renders.
 - [ ] `[manual]` Webcam (1080p/60fps), lighting and backdrop checked at different times of day; findings recorded.
