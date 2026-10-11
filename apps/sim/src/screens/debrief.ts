@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import { itemLabel, labelFor } from "../player/labels.js";
 import { fmtTime, h, mount } from "../ui.js";
 
-interface Debrief {
+export interface Debrief {
   report: ScoreReport;
   timeline: { type: string; ref?: string; caseTimeMs: number }[];
   diagnosis: { correct: string; feedback: string | null };
@@ -21,9 +21,9 @@ const AREA_LABEL: Record<string, string> = {
 };
 
 /** Score, pass status, what went well, what was missed, and feedback for each key decision. */
-export async function debriefScreen(attemptId: string, sc: StudentCase, back: () => void): Promise<void> {
+export async function debriefScreen(attemptId: string, sc: StudentCase, back: () => void, preloaded?: Debrief): Promise<void> {
   mount(h("main.center", h("p", "Loading your results…")));
-  const d = await api<Debrief>("GET", `/api/attempts/${attemptId}/result`);
+  const d = preloaded ?? (await api<Debrief>("GET", `/api/attempts/${attemptId}/result`));
   const r = d.report;
   const keyItems = r.items.filter((i) => i.key);
   const well = keyItems.filter((i) => i.done);
@@ -41,6 +41,7 @@ export async function debriefScreen(attemptId: string, sc: StudentCase, back: ()
   mount(
     h(
       "main.page.debrief",
+      preloaded ? h("p.warn", "Preview — this play-through was not stored.") : null,
       h("h1", sc.metadata.title),
       h(
         "section.card.score",

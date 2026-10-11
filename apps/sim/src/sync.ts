@@ -31,9 +31,11 @@ export class ActionRecorder {
   online = true;
   onStatus: (online: boolean, pending: number) => void = () => {};
 
+  /** @param local preview mode: keep actions on this PC only, never send them. */
   constructor(
     private readonly attemptId: string,
     serverLog: readonly { seq?: number }[],
+    private readonly local = false,
   ) {
     const stored = load(attemptId);
     const serverMax = serverLog.reduce((m, a) => Math.max(m, a.seq ?? -1), -1);
@@ -91,6 +93,7 @@ export class ActionRecorder {
 
   async flush(): Promise<boolean> {
     if (this.flushing) return false;
+    if (this.local) this.queue = [];
     if (!this.queue.length) {
       this.onStatus(this.online, 0);
       return true;

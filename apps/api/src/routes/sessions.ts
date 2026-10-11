@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireRole } from "../auth.js";
 import { tx } from "../db.js";
 import { badRequest, conflict, forbidden, notFound } from "../http-errors.js";
+import { resultsPdf, resultsXlsx } from "../exports.js";
 import { scoreAndStore } from "../scoring-service.js";
 import { sessionSeats } from "../seats.js";
 
@@ -128,6 +129,31 @@ export async function sessionRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string };
     await staffSession(app, req, id);
     return sessionResults(app, id);
+  });
+
+  const exportTitle = async (id: string) => {
+    const { rows } = await app.db.query("SELECT c.code, l.name, s.starts_at FROM sessions s JOIN courses c ON c.id = s.course_id JOIN labs l ON l.id = s.lab_id WHERE s.id = $1", [id]);
+    const r = rows[0];
+    return { title: `${r.code} · ${r.name} · ${new Date(r.starts_at).toISOString().slice(0, 10)}`, file: `results-${r.code}-${new Date(r.starts_at).toISOString().slice(0, 10)}` };
+  };
+
+  app.get("/api/sessions/:id/results.xlsx", staff, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await staffSession(app, req, id);
+    const { title, file } = await exportTitle(id);
+    const buf = await resultsXlsx({ title, ...(await sessionResults(app, id)) });
+    return reply
+      .header("content-type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+      .header("content-disposition", `attachment; filename="${file}.xlsx"`)
+      .send(buf);
+  });
+
+  app.get("/api/sessions/:id/results.pdf", staff, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await staffSession(app, req, id);
+    const { title, file } = await exportTitle(id);
+    const buf = await resultsPdf({ title, ...(await sessionResults(app, id)) });
+    return reply.header("content-type", "application/pdf").header("content-disposition", `attachment; filename="${file}.pdf"`).send(buf);
   });
 }
 

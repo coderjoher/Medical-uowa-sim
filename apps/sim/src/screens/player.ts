@@ -9,6 +9,7 @@ import { SimScene, type View } from "../scene/scene.js";
 import { ActionRecorder } from "../sync.js";
 import { fmtTime, h, modal, mount, toast } from "../ui.js";
 import { drawPreview } from "./calibration.js";
+import type { Debrief } from "./debrief.js";
 
 type Panel = "history" | "exam" | "investigations" | "management" | "diagnosis";
 
@@ -39,10 +40,24 @@ const TOPICS: Record<string, string> = {
 const VIEW_LABEL: Record<View, string> = { overview: "Whole patient", chest: "Chest", head: "Head", back: "Back" };
 const GENERIC_TURNAROUND_MIN = 2;
 
-export async function playerScreen(ctx: Ctx, payload: AttemptPayload, finished: (attemptId: string, sc: StudentCase) => void): Promise<void> {
+/**
+ * Preview mode for case authors: the same player, but nothing is stored. Results come from the
+ * full case and the debrief from the preview scorer.
+ */
+export interface PreviewMode {
+  results: Map<string, { text: string; values?: { name: string; value: string; unit?: string; flag?: string }[] }>;
+  score: (actions: readonly LoggedAction[]) => Promise<Debrief>;
+}
+
+export async function playerScreen(
+  ctx: Ctx,
+  payload: AttemptPayload,
+  finished: (attemptId: string, sc: StudentCase, preloaded?: Debrief) => void,
+  preview?: PreviewMode,
+): Promise<void> {
   const sc = payload.case;
   const attemptId = payload.attempt.id;
-  const recorder = new ActionRecorder(attemptId, payload.actions);
+  const recorder = new ActionRecorder(attemptId, payload.actions, !!preview);
   const rt = new CaseRuntime(sc, payload.actions, recorder, () => ctx.hand.currentSource());
   const scene = new SimScene(document.getElementById("scene") as HTMLCanvasElement);
   let sessionStatus = payload.sessionStatus;
@@ -269,9 +284,12 @@ export async function playerScreen(ctx: Ctx, payload: AttemptPayload, finished: 
     for (const s of rt.investigations()) {
       if (!s.ready || results.has(s.id)) continue;
       try {
-        await recorder.flush();
-        const r = await api<{ result: { text: string; values?: [] } }>("GET", `/api/attempts/${attemptId}/investigations/${s.id}?at=${Math.floor(rt.now)}`);
-        results.set(s.id, r.result);
+        if (preview) results.set(s.id, preview.results.get(s.id)!);
+        else {
+          await recorder.flush();
+          const r = await api<{ result: { text: string; values?: [] } }>("GET", `/api/attempts/${attemptId}/investigations/${s.id}?at=${Math.floor(rt.now)}`);
+          results.set(s.id, r.result);
+        }
         toast(`${TESTS_BY_ID.get(s.id)?.label} result is back`);
         if (panel === "investigations") renderPanel();
       } catch {
@@ -490,9 +508,11 @@ export async function playerScreen(ctx: Ctx, payload: AttemptPayload, finished: 
       void finishCase(true);
     }
   };
-  const stopLive = liveSocket(payload.attempt.sessionId, (m) => {
-    if (m.type === "session" && m.status) applySession(m.status);
-  });
+  const stopLive = preview
+    ? () => {}
+    : liveSocket(payload.attempt.sessionId, (m) => {
+        if (m.type === "session" && m.status) applySession(m.status);
+      });
 
   // ---- Main loop ----------------------------------------------------------------------------
   const seenMessages = new Set<string>();
@@ -613,7 +633,8 @@ export async function playerScreen(ctx: Ctx, payload: AttemptPayload, finished: 
       mount(h("main.center", h("div.card.narrow", h("h1", "Still offline"), h("p", "Your actions are saved on this PC and will upload when the network is back."), h("button.primary.big", { on: { click: () => location.reload() } }, "Try again"))));
       return;
     }
-    if (!byInstructor) await api("POST", `/api/attempts/${attemptId}/finish`);
+    const previewDebrief = preview ? await preview.score(rt.actions) : undefined;
+    if (!byInstructor && !preview) await api("POST", `/api/attempts/${attemptId}/finish`);
     stopLive();
     rt.dispose();
     recorder.clear();
@@ -621,7 +642,7 @@ export async function playerScreen(ctx: Ctx, payload: AttemptPayload, finished: 
     ctx.hand.onGesture = () => {};
     ctx.hand.onFrame = () => {};
     scene.dispose();
-    finished(attemptId, sc);
+    finished(attemptId, sc, previewDebrief);
   };
 
   tick(); // draw the HUD now rather than after the first interval

@@ -72,6 +72,15 @@ export async function adminRoutes(app: FastifyInstance) {
     return reply.code(204).send();
   });
 
+  app.get("/api/admin/courses/:id/members", admin, async (req) => {
+    const { id } = req.params as { id: string };
+    const { rows } = await app.db.query(
+      'SELECT u.id, u.username, u.display_name AS "displayName", u.role FROM course_members m JOIN users u ON u.id = m.user_id WHERE m.course_id = $1 ORDER BY u.display_name',
+      [id],
+    );
+    return rows;
+  });
+
   app.post("/api/admin/labs", admin, async (req, reply) => {
     const l = NewLab.parse(req.body);
     try {

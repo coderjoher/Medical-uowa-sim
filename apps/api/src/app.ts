@@ -1,7 +1,7 @@
 import fastifyJwt from "@fastify/jwt";
 import fastifyStatic from "@fastify/static";
 import fastifyWebsocket from "@fastify/websocket";
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
 import { ZodError } from "zod";
 import type { AuthProvider } from "./auth.js";
 import type { Db } from "./db.js";
@@ -34,10 +34,10 @@ declare module "fastify" {
 }
 
 /** Hashed build assets and models can be cached for long; index.html must always revalidate. */
-function cacheHeaders(res: { setHeader: (k: string, v: string) => void }, path: string) {
-  if (/\/assets\/.+-[A-Za-z0-9_-]{8}\.[a-z0-9]+$/.test(path)) res.setHeader("cache-control", "public, max-age=31536000, immutable");
-  else if (/\.(glb|task|wasm|mp3|png|jpg)$/.test(path)) res.setHeader("cache-control", "public, max-age=86400");
-  else res.setHeader("cache-control", "no-cache");
+function cacheHeaders(reply: FastifyReply, path: string) {
+  if (/\/assets\/.+-[A-Za-z0-9_-]{8}\.[a-z0-9]+$/.test(path)) reply.header("cache-control", "public, max-age=31536000, immutable");
+  else if (/\.(glb|task|wasm|mp3|png|jpg)$/.test(path)) reply.header("cache-control", "public, max-age=86400");
+  else reply.header("cache-control", "no-cache");
 }
 
 export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {

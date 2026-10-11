@@ -233,6 +233,30 @@ describe("instructor controls", () => {
     expect(pde5?.missed ?? 1).toBe(1);
   });
 
+  it("exports results to Excel and PDF that match the on-screen numbers", async () => {
+    const { sessionId } = await makeSession(w);
+    const { attempt } = (await req("POST", `/api/sessions/${sessionId}/attempts`, "alice", { caseId: "chest-pain-stemi" })).json();
+    await req("POST", `/api/attempts/${attempt.id}/actions`, "alice", { actions: [action("investigation.order", "ecg", 1000)] });
+    await req("POST", `/api/attempts/${attempt.id}/finish`, "alice");
+    const onScreen = (await req("GET", `/api/sessions/${sessionId}/results`, "instructor")).json();
+
+    const xlsx = await req("GET", `/api/sessions/${sessionId}/results.xlsx`, "instructor");
+    expect(xlsx.statusCode).toBe(200);
+    expect(xlsx.headers["content-type"]).toContain("spreadsheetml");
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(xlsx.rawPayload as unknown as ArrayBuffer);
+    const sheet = wb.getWorksheet("Students")!;
+    expect(sheet.getRow(2).getCell(1).value).toBe("ALICE");
+    expect(sheet.getRow(2).getCell(6).value).toBe(onScreen.results[0].totalPct);
+    expect(wb.getWorksheet("Cohort")!.getRow(2).getCell(3).value).toBe(onScreen.cohort[0].meanPct);
+
+    const pdf = await req("GET", `/api/sessions/${sessionId}/results.pdf`, "instructor");
+    expect(pdf.statusCode).toBe(200);
+    expect(pdf.rawPayload.subarray(0, 5).toString()).toBe("%PDF-");
+    expect((await req("GET", `/api/sessions/${sessionId}/results.pdf`, "alice")).statusCode).toBe(403);
+  });
+
   it("a rubric correction re-scores stored attempts; content changes are refused", async () => {
     const { sessionId } = await makeSession(w);
     const { attempt } = (await req("POST", `/api/sessions/${sessionId}/attempts`, "alice", { caseId: "chest-pain-stemi" })).json();

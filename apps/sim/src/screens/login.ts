@@ -15,8 +15,9 @@ export function loginScreen(ctx: Ctx, next: () => void): void {
           err.textContent = "";
           try {
             const r = await api<{ token: string; user: User }>("POST", "/api/auth/login", { username: username.value, password: password.value });
-            if (r.user.role !== "student") {
-              err.textContent = "This app is for students. Staff use the dashboard.";
+            const preview = new URLSearchParams(location.search).has("preview");
+            if (preview ? !["case_author", "admin"].includes(r.user.role) : r.user.role !== "student") {
+              err.textContent = preview ? "Preview is for case authors and admins." : "This app is for students. Staff use the dashboard.";
               return;
             }
             auth.token = r.token;

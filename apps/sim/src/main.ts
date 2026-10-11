@@ -4,12 +4,13 @@ import type { Ctx, User } from "./context.js";
 import { HandInput } from "./input/hand-input.js";
 import { calibrationScreen } from "./screens/calibration.js";
 import { consentScreen } from "./screens/consent.js";
-import { debriefScreen } from "./screens/debrief.js";
+import { debriefScreen, type Debrief } from "./screens/debrief.js";
 import { labCheckScreen } from "./screens/labcheck.js";
 import { loginScreen } from "./screens/login.js";
 import { playerScreen } from "./screens/player.js";
 import { sessionsScreen } from "./screens/sessions.js";
 import { h, mount } from "./ui.js";
+import type { StudentCase } from "@sim/shared";
 
 const params = new URLSearchParams(location.search);
 const ctx: Ctx = { hand: new HandInput(), user: null, mode: "mouse", fakeHand: params.get("fakeHand") === "1" };
@@ -125,8 +126,43 @@ ctx.hand.applyCalibration = (c: Calibration) => {
   origApply(c);
 };
 
+/** Case preview for authors: /?preview=<caseId>:<version>. Plays the case without storing anything. */
+async function preview(spec: string) {
+  const [caseId, version] = spec.split(":");
+  const sc = await api<StudentCase>("GET", `/api/admin/cases/${caseId}/${version}/preview`);
+  const full = await api<{ investigations: { id: string; result: { text: string; values?: [] } }[] }>("GET", `/api/admin/cases/${caseId}/${version}`);
+  const choice = await new Promise<"hand" | "mouse">((resolve) => consentScreen(resolve));
+  await startInput(choice);
+  const id = `preview-${caseId}-${version}-${Date.now()}`;
+  await playerScreen(
+    ctx,
+    { attempt: { id, sessionId: "preview", caseId: caseId!, status: "in_progress" }, sessionStatus: "open", case: sc, actions: [] },
+    (attemptId, s, d) => void debriefScreen(attemptId, s, () => location.reload(), d),
+    {
+      results: new Map(full.investigations.map((t) => [t.id, t.result])),
+      score: async (actions) => {
+        const report = await api<Debrief["report"]>("POST", `/api/admin/cases/${caseId}/${version}/preview-score`, { actions });
+        const definition = await api<{ diagnosis: { correct: string; feedback?: string } }>("GET", `/api/admin/cases/${caseId}/${version}`);
+        const timeline = actions.filter((x) => !["view.change", "tracking.lost", "tracking.recalibrate", "input.switch"].includes(x.type));
+        return { report, timeline, diagnosis: { correct: definition.diagnosis.correct, feedback: definition.diagnosis.feedback ?? null } };
+      },
+    },
+  );
+}
+
 async function boot() {
   if (params.get("labcheck") === "1") return labCheckScreen(ctx);
+  const previewSpec = params.get("preview");
+  if (previewSpec) {
+    // Token handed over by the dashboard in the URL fragment; remove it from the address bar.
+    const handed = new URLSearchParams(location.hash.slice(1)).get("token");
+    if (handed) {
+      auth.token = handed;
+      history.replaceState(null, "", location.pathname + location.search);
+    }
+    if (!auth.token) return loginScreen(ctx, () => void preview(previewSpec).catch(showError));
+    return preview(previewSpec).catch(showError);
+  }
   if (!auth.token) return loginScreen(ctx, () => void home());
   try {
     ctx.user = await api<User>("GET", "/api/me");
