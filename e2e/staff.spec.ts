@@ -30,6 +30,20 @@ test("admin manages users, courses, labs and sees system health", async ({ page 
   await page.getByRole("button", { name: "Add user" }).click();
   await expect(page.getByRole("cell", { name: "New Student" })).toBeVisible();
 
+  // Edit the role.
+  const row = page.getByRole("row", { name: /newstudent/ });
+  await row.getByRole("button", { name: "Edit" }).click();
+  await page.getByLabel("Role of newstudent").selectOption("instructor");
+  await page.getByRole("row", { name: /newstudent/ }).getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("row", { name: /newstudent/ })).toContainText("instructor");
+
+  // Bulk import: a bad file lists problems; a good one imports.
+  await page.getByLabel("Users CSV").setInputFiles({ name: "bad.csv", mimeType: "text/csv", buffer: Buffer.from("username,display_name,role\nok1,OK,student\nbad name,X,pilot\n") });
+  await expect(page.locator(".issues")).toContainText('line 3 — invalid username "bad name"');
+  await page.getByLabel("Users CSV").setInputFiles({ name: "roster.csv", mimeType: "text/csv", buffer: Buffer.from("username,display_name,role,courses\nroster1,Roster One,student,MED-401\nroster2,Roster Two,student,MED-401\n") });
+  await expect(page.locator(".note")).toContainText("Imported: 2 created, 0 updated, 2 course enrolments.");
+  await expect(page.getByRole("cell", { name: "Roster Two" })).toBeVisible();
+
   await page.getByRole("link", { name: "Courses" }).click();
   await page.getByLabel("Course code").fill("MED-999");
   await page.getByLabel("Course title").fill("Test course");

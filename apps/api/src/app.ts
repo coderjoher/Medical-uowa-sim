@@ -47,6 +47,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   app.decorate("live", new LiveHub());
   app.decorate("opts", opts);
 
+  app.addContentTypeParser("text/csv", { parseAs: "string" }, (_req, body, done) => done(null, body));
   // Spreadsheet uploads arrive as raw bytes.
   app.addContentTypeParser(["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"], { parseAs: "buffer" }, (_req, body, done) => done(null, body));
 

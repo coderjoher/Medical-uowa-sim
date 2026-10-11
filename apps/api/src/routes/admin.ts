@@ -2,7 +2,9 @@ import { existsSync, readFileSync } from "node:fs";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { hashPassword, requireRole } from "../auth.js";
-import { conflict, notFound } from "../http-errors.js";
+import { parseCsv } from "../csv.js";
+import { tx } from "../db.js";
+import { badRequest, conflict, notFound } from "../http-errors.js";
 
 const NewUser = z.object({
   username: z.string().min(2).max(64).transform((s) => s.trim().toLowerCase()),
@@ -37,6 +39,81 @@ export async function adminRoutes(app: FastifyInstance) {
   app.get("/api/admin/users", staff, async () => {
     const { rows } = await app.db.query('SELECT id, username, display_name AS "displayName", role FROM users ORDER BY username');
     return rows;
+  });
+
+  app.patch("/api/admin/users/:id", admin, async (req) => {
+    const { id } = req.params as { id: string };
+    const b = z
+      .object({ displayName: z.string().min(1).optional(), role: z.enum(["student", "instructor", "case_author", "admin"]).optional(), password: z.string().min(8).optional() })
+      .refine((x) => Object.keys(x).length > 0, "nothing to change")
+      .parse(req.body);
+    if (id === req.user.id && b.role && b.role !== "admin") throw conflict("you cannot remove your own admin role");
+    const { rows } = await app.db.query(
+      `UPDATE users SET display_name = coalesce($2, display_name), role = coalesce($3, role), password_hash = coalesce($4, password_hash)
+       WHERE id = $1 RETURNING id, username, display_name AS "displayName", role`,
+      [id, b.displayName ?? null, b.role ?? null, b.password ? await hashPassword(b.password) : null],
+    );
+    if (!rows[0]) throw notFound("user");
+    return rows[0];
+  });
+
+  /**
+   * Bulk import from CSV (e.g. the course roster exported from the student system).
+   * Columns: username, display_name, role, password (optional), courses (optional, codes separated by "|").
+   * All rows are checked first; if any row is wrong nothing is imported and every problem is listed.
+   */
+  app.post("/api/admin/users/import", admin, async (req, reply) => {
+    const text = typeof req.body === "string" ? req.body : Buffer.isBuffer(req.body) ? req.body.toString("utf8") : "";
+    if (!text.trim()) throw badRequest("send the CSV as the request body");
+    const rows = parseCsv(text);
+    const header = (rows.shift() ?? []).map((h) => h.trim().toLowerCase().replace(/\s+/g, "_"));
+    const col = (name: string) => header.indexOf(name);
+    for (const required of ["username", "display_name", "role"]) if (col(required) < 0) throw badRequest(`missing column "${required}"`, [{ path: "line 1", message: `expected columns: username, display_name, role, password, courses` }]);
+    const courses = new Map((await app.db.query("SELECT id, code FROM courses")).rows.map((c) => [String(c.code).toLowerCase(), c.id as string]));
+    const errors: { path: string; message: string }[] = [];
+    const seen = new Set<string>();
+    const parsed = rows.map((r, i) => {
+      const line = `line ${i + 2}`;
+      const get = (name: string) => (col(name) >= 0 ? (r[col(name)] ?? "").trim() : "");
+      const username = get("username").toLowerCase();
+      const role = get("role").toLowerCase().replace(" ", "_");
+      const password = get("password");
+      const codes = get("courses").split("|").map((c) => c.trim()).filter(Boolean);
+      if (!/^[a-z0-9._@-]{2,64}$/.test(username)) errors.push({ path: line, message: `invalid username "${get("username")}"` });
+      if (seen.has(username)) errors.push({ path: line, message: `username "${username}" appears twice` });
+      seen.add(username);
+      if (!get("display_name")) errors.push({ path: line, message: "display_name is empty" });
+      if (!["student", "instructor", "case_author", "admin"].includes(role)) errors.push({ path: line, message: `role must be student, instructor, case_author or admin (got "${get("role")}")` });
+      if (password && password.length < 8) errors.push({ path: line, message: "password must be at least 8 characters" });
+      for (const c of codes) if (!courses.has(c.toLowerCase())) errors.push({ path: line, message: `unknown course "${c}"` });
+      return { username, displayName: get("display_name"), role, password, courseIds: codes.map((c) => courses.get(c.toLowerCase())!).filter(Boolean) };
+    });
+    if (!parsed.length) throw badRequest("the CSV has no rows");
+    if (errors.length) throw badRequest(`${errors.length} problem(s); nothing was imported`, errors);
+
+    const summary = await tx(app.db, async (q) => {
+      let created = 0;
+      let updated = 0;
+      let enrolled = 0;
+      for (const u of parsed) {
+        const hash = u.password ? await hashPassword(u.password) : null;
+        const { rows: out } = await q.query(
+          `INSERT INTO users (username, display_name, role, password_hash) VALUES ($1, $2, $3, $4)
+           ON CONFLICT (username) DO UPDATE SET display_name = EXCLUDED.display_name, role = EXCLUDED.role,
+             password_hash = coalesce(EXCLUDED.password_hash, users.password_hash)
+           RETURNING id, (xmax = 0) AS inserted`,
+          [u.username, u.displayName, u.role, hash],
+        );
+        if (out[0].inserted) created++;
+        else updated++;
+        for (const courseId of u.courseIds) {
+          const r = await q.query("INSERT INTO course_members (course_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", [courseId, out[0].id]);
+          enrolled += r.rowCount ?? 0;
+        }
+      }
+      return { created, updated, enrolled };
+    });
+    return reply.code(201).send(summary);
   });
 
   app.delete("/api/admin/users/:id", admin, async (req, reply) => {
