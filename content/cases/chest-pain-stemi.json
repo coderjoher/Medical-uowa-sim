@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "metadata": {
+    "id": "chest-pain-stemi",
+    "version": 1,
+    "title": "Chest pain in a 45-year-old man",
+    "course": "MED-401 Clinical Reasoning",
+    "specialty": "Emergency medicine",
+    "difficulty": "medium",
+    "learningObjectives": [
+      "Take a focused chest pain history including cardiac risk factors and drug history",
+      "Recognise an inferior STEMI on ECG",
+      "Start ACS management in the right order and avoid a dangerous drug interaction"
+    ],
+    "timeLimitMin": 20,
+    "authors": ["Reference case (dev team) - replace with academic author"]
+  },
+  "patient": {
+    "model": "adult_male",
+    "name": "Ali Hassan",
+    "age": 45,
+    "sex": "male",
+    "chiefComplaint": "Central chest pain for 2 hours",
+    "handover": "45-year-old man, central chest pain for 2 hours, sweaty. Brought in by his brother.",
+    "appearance": ["breathing", "blinking", "pain", "sweating"]
+  },
+  "history": [
+    { "id": "pc_onset", "topic": "presenting_complaint", "text": "When did the pain start?", "answer": "About two hours ago, while I was sitting watching TV.", "relevance": "essential", "points": 2 },
+    { "id": "pc_character", "topic": "presenting_complaint", "text": "What does the pain feel like?", "answer": "Heavy, like someone sitting on my chest.", "relevance": "essential", "points": 2 },
+    { "id": "pc_radiation", "topic": "presenting_complaint", "text": "Does the pain go anywhere else?", "answer": "Yes, down my left arm and into my jaw.", "relevance": "essential", "points": 2, "feedback": "Radiation to the arm or jaw raises the likelihood of cardiac pain." },
+    { "id": "pc_associated", "topic": "presenting_complaint", "text": "Any sweating, nausea or breathlessness?", "answer": "I've been sweating a lot and feel sick.", "relevance": "essential", "points": 2 },
+    { "id": "pc_pleuritic", "topic": "presenting_complaint", "text": "Is it worse when you breathe in?", "answer": "No, breathing doesn't change it.", "relevance": "useful", "points": 1 },
+    { "id": "ph_cardiac", "topic": "past_history", "text": "Any heart problems before?", "answer": "No, never.", "relevance": "useful", "points": 1 },
+    { "id": "ph_risk", "topic": "past_history", "text": "Do you have diabetes, high blood pressure or high cholesterol?", "answer": "High blood pressure and my cholesterol was high last year.", "relevance": "essential", "points": 2 },
+    { "id": "dh_meds", "topic": "drugs", "text": "Do you take any regular medicines?", "answer": "Amlodipine for blood pressure.", "relevance": "useful", "points": 1 },
+    { "id": "dh_pde5", "topic": "drugs", "text": "Have you taken any other tablets recently, including ones without a prescription?", "answer": "I took a sildenafil tablet last night.", "relevance": "essential", "points": 3, "feedback": "Sildenafil within 24 hours is a contraindication to nitrates such as GTN." },
+    { "id": "al_allergies", "topic": "allergies", "text": "Any allergies?", "answer": "None that I know of.", "relevance": "essential", "points": 2 },
+    { "id": "sh_smoking", "topic": "social", "text": "Do you smoke?", "answer": "Twenty a day since I was 18.", "relevance": "essential", "points": 2 },
+    { "id": "sh_job", "topic": "social", "text": "What do you do for work?", "answer": "I'm a taxi driver.", "relevance": "irrelevant" },
+    { "id": "sh_pets", "topic": "social", "text": "Do you have any pets?", "answer": "A cat.", "relevance": "irrelevant" },
+    { "id": "fh_cardiac", "topic": "family", "text": "Any heart disease in the family?", "answer": "My father died of a heart attack at 52.", "relevance": "useful", "points": 1 }
+  ],
+  "examination": [
+    { "id": "general_inspection", "finding": { "text": "Pale, sweaty, clutching his chest, in obvious discomfort." }, "relevant": true, "points": 1 },
+    { "id": "radial_pulse", "finding": { "text": "Regular, 98 bpm." }, "relevant": true, "points": 1 },
+    { "id": "blood_pressure", "finding": { "text": "148/92 in both arms." }, "relevant": true, "points": 2, "feedback": "Checking BP in both arms helps exclude aortic dissection." },
+    { "id": "heart_auscultation", "finding": { "text": "Normal heart sounds, no murmurs.", "sound": "sounds/heart-normal.mp3" }, "relevant": true, "points": 3 },
+    { "id": "chest_auscultation_front", "finding": { "text": "Vesicular breath sounds, no crackles.", "sound": "sounds/lung-normal.mp3" }, "relevant": true, "points": 3 },
+    { "id": "chest_auscultation_back", "finding": { "text": "Clear bases.", "sound": "sounds/lung-normal.mp3" }, "relevant": true, "points": 1 },
+    { "id": "jvp", "finding": { "text": "JVP not raised." }, "relevant": true, "points": 1 },
+    { "id": "ankle_oedema", "finding": { "text": "No oedema." }, "relevant": true, "points": 1 },
+    { "id": "abdomen_palpation", "finding": { "text": "Soft, non-tender." }, "relevant": false },
+    { "id": "pupils", "finding": { "text": "Equal and reactive." }, "relevant": false },
+    { "id": "reflexes_knee", "finding": { "text": "Normal." }, "relevant": false }
+  ],
+  "vitals": {
+    "initial": { "hr": 98, "sbp": 148, "dbp": 92, "rr": 20, "spo2": 93, "temp": 36.9 },
+    "timed": [
+      { "id": "pain_worsens", "atMin": 8, "changes": [ { "vital": "hr", "mode": "delta", "value": 10, "overMin": 2 } ] }
+    ],
+    "onAction": [
+      { "id": "o2_response", "onAction": "oxygen", "afterMin": 0.5, "changes": [ { "vital": "spo2", "mode": "set", "value": 96, "overMin": 2 } ] },
+      { "id": "morphine_response", "onAction": "morphine", "afterMin": 1, "changes": [ { "vital": "hr", "mode": "delta", "value": -8, "overMin": 3 }, { "vital": "rr", "mode": "delta", "value": -2, "overMin": 3 } ] },
+      { "id": "gtn_hypotension", "onAction": "gtn", "afterMin": 1, "changes": [ { "vital": "sbp", "mode": "set", "value": 78, "overMin": 2 }, { "vital": "dbp", "mode": "set", "value": 44, "overMin": 2 }, { "vital": "hr", "mode": "set", "value": 125, "overMin": 2 } ] }
+    ],
+    "deterioration": [
+      { "id": "hypoxia", "atMin": 5, "unlessActions": ["oxygen"], "changes": [ { "vital": "spo2", "mode": "delta", "value": -5, "overMin": 3 }, { "vital": "rr", "mode": "delta", "value": 6, "overMin": 3 } ], "message": "The patient is becoming more breathless." }
+    ]
+  },
+  "investigations": [
+    { "id": "ecg", "result": { "text": "Sinus rhythm 98 bpm. ST elevation in II, III and aVF with reciprocal ST depression in I and aVL.", "ecg": "ecg/inferior-stemi.png" }, "turnaroundMin": 0.5, "indicated": true, "points": 5, "feedback": "An ECG within 10 minutes of arrival is the key test in chest pain." },
+    { "id": "troponin", "result": { "text": "High-sensitivity troponin raised.", "values": [ { "name": "hs-TnI", "value": "860", "unit": "ng/L", "flag": "critical" } ] }, "turnaroundMin": 6, "indicated": true, "points": 3 },
+    { "id": "fbc", "result": { "text": "Normal.", "values": [ { "name": "Hb", "value": "148", "unit": "g/L", "flag": "normal" } ] }, "turnaroundMin": 4, "indicated": true, "points": 1 },
+    { "id": "u_and_e", "result": { "text": "Normal renal function.", "values": [ { "name": "Creatinine", "value": "88", "unit": "umol/L", "flag": "normal" }, { "name": "K", "value": "4.1", "unit": "mmol/L", "flag": "normal" } ] }, "turnaroundMin": 4, "indicated": true, "points": 1 },
+    { "id": "glucose", "result": { "text": "6.4 mmol/L." }, "turnaroundMin": 0.5, "indicated": true, "points": 1 },
+    { "id": "cxr", "result": { "text": "Normal heart size, clear lung fields, normal mediastinum.", "image": "images/cxr-normal.png" }, "turnaroundMin": 3, "indicated": true, "points": 1 },
+    { "id": "ct_chest", "result": { "text": "No acute abnormality." }, "turnaroundMin": 8, "indicated": false, "penalty": 1, "feedback": "CT chest does not change management in a clear STEMI and delays reperfusion." },
+    { "id": "d_dimer", "result": { "text": "Mildly raised." }, "turnaroundMin": 4, "indicated": false, "penalty": 1 },
+    { "id": "lft", "result": { "text": "Normal." }, "turnaroundMin": 4, "indicated": false, "penalty": 0.5 }
+  ],
+  "diagnosis": {
+    "options": [
+      { "id": "inferior_stemi", "label": "Inferior ST-elevation myocardial infarction" },
+      { "id": "nstemi", "label": "Non-ST-elevation myocardial infarction" },
+      { "id": "unstable_angina", "label": "Unstable angina" },
+      { "id": "aortic_dissection", "label": "Aortic dissection" },
+      { "id": "pulmonary_embolism", "label": "Pulmonary embolism" },
+      { "id": "pericarditis", "label": "Pericarditis" },
+      { "id": "gord", "label": "Gastro-oesophageal reflux" },
+      { "id": "musculoskeletal", "label": "Musculoskeletal chest pain" }
+    ],
+    "correct": "inferior_stemi",
+    "correctPoints": 10,
+    "acceptable": [ { "id": "aortic_dissection", "points": 4 }, { "id": "pericarditis", "points": 2 } ],
+    "maxDifferentials": 3,
+    "feedback": "ST elevation in II, III and aVF with reciprocal change is an inferior STEMI."
+  },
+  "management": {
+    "actions": [
+      { "id": "aspirin", "classification": "correct", "points": 5, "withinMin": 10, "latePoints": 2, "feedback": "Aspirin 300 mg should be given as early as possible." },
+      { "id": "ticagrelor", "classification": "correct", "points": 3 },
+      { "id": "oxygen", "classification": "correct", "points": 3, "feedback": "Oxygen is indicated because SpO2 is below 94%." },
+      { "id": "morphine", "classification": "acceptable", "points": 2 },
+      { "id": "metoclopramide", "classification": "acceptable", "points": 1 },
+      { "id": "iv_access", "classification": "correct", "points": 1 },
+      { "id": "cardiac_monitoring", "classification": "correct", "points": 1 },
+      { "id": "refer_cardiology", "classification": "correct", "points": 5, "withinMin": 15, "latePoints": 2, "feedback": "STEMI needs urgent primary PCI." },
+      { "id": "heparin", "classification": "acceptable", "points": 1 },
+      { "id": "gtn", "classification": "harmful", "points": 10, "critical": true, "feedback": "GTN after recent sildenafil can cause profound hypotension. Always ask about PDE-5 inhibitors before nitrates." },
+      { "id": "ibuprofen", "classification": "harmful", "points": 5, "feedback": "NSAIDs increase risk in acute MI." },
+      { "id": "discharge", "classification": "harmful", "points": 10, "critical": true },
+      { "id": "paracetamol", "classification": "neutral" }
+    ],
+    "requiredOrder": [
+      { "sequence": ["aspirin", "refer_cardiology"], "penalty": 1, "feedback": "Give antiplatelet therapy before transfer for PCI." }
+    ]
+  },
+  "questions": [
+    {
+      "id": "q_ecg_territory",
+      "checkpoint": { "kind": "after_action", "action": "ecg" },
+      "type": "single",
+      "prompt": "Which coronary territory is most likely affected?",
+      "options": [ { "id": "lad", "label": "Left anterior descending" }, { "id": "rca", "label": "Right coronary artery" }, { "id": "lcx", "label": "Left circumflex" } ],
+      "correct": ["rca"],
+      "points": 2,
+      "feedback": "Inferior leads (II, III, aVF) usually reflect the right coronary artery."
+    },
+    {
+      "id": "q_nitrate_ci",
+      "checkpoint": { "kind": "before_diagnosis" },
+      "type": "multiple",
+      "prompt": "Which of these are contraindications to GTN?",
+      "options": [ { "id": "pde5", "label": "PDE-5 inhibitor in the last 24-48 h" }, { "id": "sbp_low", "label": "Systolic BP below 90 mmHg" }, { "id": "rv_infarct", "label": "Suspected right ventricular infarct" }, { "id": "smoker", "label": "Current smoker" } ],
+      "correct": ["pde5", "sbp_low", "rv_infarct"],
+      "points": 3
+    },
+    {
+      "id": "q_reperfusion",
+      "checkpoint": { "kind": "time", "atMin": 12 },
+      "type": "short_list",
+      "prompt": "What is the target time from diagnosis to reperfusion with primary PCI?",
+      "options": [ { "id": "60", "label": "60 minutes" }, { "id": "120", "label": "120 minutes" }, { "id": "360", "label": "6 hours" } ],
+      "correct": ["120"],
+      "points": 2
+    }
+  ],
+  "rubric": { "decisionWeight": 0.7, "questionWeight": 0.3, "passMark": 60, "irrelevantHistoryPenalty": 0.5 }
+}
