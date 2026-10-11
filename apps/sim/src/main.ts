@@ -6,11 +6,13 @@ import { calibrationScreen } from "./screens/calibration.js";
 import { consentScreen } from "./screens/consent.js";
 import { debriefScreen, type Debrief } from "./screens/debrief.js";
 import { labCheckScreen } from "./screens/labcheck.js";
+import { pickSeat } from "./screens/seat-picker.js";
+import { trackingTestScreen } from "./screens/tracking-test.js";
 import { loginScreen } from "./screens/login.js";
 import { playerScreen } from "./screens/player.js";
 import { sessionsScreen } from "./screens/sessions.js";
 import { h, mount } from "./ui.js";
-import type { StudentCase } from "@sim/shared";
+import { NON_CLINICAL_TYPES, type StudentCase } from "@sim/shared";
 
 const params = new URLSearchParams(location.search);
 const ctx: Ctx = { hand: new HandInput(), user: null, mode: "mouse", fakeHand: params.get("fakeHand") === "1" };
@@ -130,7 +132,7 @@ ctx.hand.applyCalibration = (c: Calibration) => {
 async function preview(spec: string) {
   const [caseId, version] = spec.split(":");
   const sc = await api<StudentCase>("GET", `/api/admin/cases/${caseId}/${version}/preview`);
-  const full = await api<{ investigations: { id: string; result: { text: string; values?: [] } }[] }>("GET", `/api/admin/cases/${caseId}/${version}`);
+  const full = await api<{ investigations: { id: string; result: { text: string; values?: []; image?: string; ecg?: string } }[] }>("GET", `/api/admin/cases/${caseId}/${version}`);
   const choice = await new Promise<"hand" | "mouse">((resolve) => consentScreen(resolve));
   await startInput(choice);
   const id = `preview-${caseId}-${version}-${Date.now()}`;
@@ -143,15 +145,39 @@ async function preview(spec: string) {
       score: async (actions) => {
         const report = await api<Debrief["report"]>("POST", `/api/admin/cases/${caseId}/${version}/preview-score`, { actions });
         const definition = await api<{ diagnosis: { correct: string; feedback?: string } }>("GET", `/api/admin/cases/${caseId}/${version}`);
-        const timeline = actions.filter((x) => !["view.change", "tracking.lost", "tracking.recalibrate", "input.switch"].includes(x.type));
+        const timeline = actions.filter((x) => !(NON_CLINICAL_TYPES as readonly string[]).includes(x.type));
         return { report, timeline, diagnosis: { correct: definition.diagnosis.correct, feedback: definition.diagnosis.feedback ?? null } };
       },
     },
   );
 }
 
+/** Staff and lab tools: sign in (any role), say which seat this is, then run the tool. */
+async function tool(run: (seatId: string | null) => Promise<void>) {
+  if (!auth.token) return loginScreen(ctx, () => void tool(run), true);
+  try {
+    ctx.user = await api<User>("GET", "/api/me");
+    await run(await pickSeat(params.get("trackingtest") ? "Hand-tracking test" : "Lab check"));
+  } catch (e) {
+    showError(e);
+  }
+}
+
+async function trackingTest(seatId: string | null) {
+  const choice = ctx.fakeHand ? "hand" : await new Promise<"hand" | "mouse">((resolve) => consentScreen(resolve));
+  if (choice === "mouse") return home();
+  await startInput("hand");
+  if (ctx.mode !== "hand") {
+    mount(h("main.center", h("div.card.narrow", h("h1", "Hand tracking is not available"), h("p", "The camera could not start or calibration was cancelled."), h("a", { href: "?trackingtest=1" }, "Try again"))));
+    return;
+  }
+  const n = (k: string, d: number) => Math.max(1, Number(params.get(k)) || d);
+  await trackingTestScreen(ctx, { targets: n("targets", 30), restSeconds: n("rest", 60), seatId });
+}
+
 async function boot() {
-  if (params.get("labcheck") === "1") return labCheckScreen(ctx);
+  if (params.get("labcheck") === "1") return tool((seatId) => labCheckScreen(ctx, seatId));
+  if (params.get("trackingtest") === "1") return tool(trackingTest);
   const previewSpec = params.get("preview");
   if (previewSpec) {
     // Token handed over by the dashboard in the URL fragment; remove it from the address bar.

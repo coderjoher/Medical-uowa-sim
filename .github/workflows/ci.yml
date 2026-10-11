@@ -28,6 +28,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Install OpenLDAP (for the LDAP sign-in tests)
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq slapd ldap-utils
+          sudo systemctl stop slapd || true
+          # The tests start their own slapd from a temp directory; Ubuntu's AppArmor profile would block that.
+          sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.slapd 2>/dev/null || true
       - name: Lint
         run: npm run lint
       - name: Typecheck

@@ -1,5 +1,5 @@
 import { resultReadyAt } from "@sim/engine";
-import { ActionLogEntry, toStudentCase } from "@sim/shared";
+import { ActionLogEntry, NON_CLINICAL_TYPES, toStudentCase } from "@sim/shared";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { requireRole } from "../auth.js";
@@ -152,6 +152,6 @@ export async function attemptRoutes(app: FastifyInstance) {
 /** Debrief for the student: score, pass status, their timeline against the expected path, and feedback. */
 async function debrief(app: FastifyInstance, caseId: string, version: number, report: import("@sim/engine").ScoreReport, attemptId: string) {
   const { definition } = await loadCase(app.db, caseId, version);
-  const timeline = (await loadActions(app.db, attemptId)).filter((x) => !["view.change", "tracking.lost", "tracking.recalibrate", "input.switch"].includes(x.type));
+  const timeline = (await loadActions(app.db, attemptId)).filter((x) => !(NON_CLINICAL_TYPES as readonly string[]).includes(x.type));
   return { report, timeline, diagnosis: { correct: definition.diagnosis.correct, feedback: definition.diagnosis.feedback ?? null } };
 }

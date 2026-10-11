@@ -65,7 +65,7 @@ export async function sessionRoutes(app: FastifyInstance) {
   // Sessions a student can join now: their course, inside the time window, not ended.
   app.get("/api/my/sessions", { preHandler: requireRole("student") }, async (req) => {
     const { rows } = await app.db.query(
-      `SELECT s.id, s.status, s.cases, s.starts_at AS "startsAt", s.ends_at AS "endsAt", c.code AS course, l.name AS lab,
+      `SELECT s.id, s.status, s.cases, s.starts_at AS "startsAt", s.ends_at AS "endsAt", c.code AS course, c.id AS "courseId", l.name AS lab,
               l.id AS "labId"
        FROM sessions s
        JOIN course_members m ON m.course_id = s.course_id AND m.user_id = $1
@@ -112,10 +112,10 @@ export async function sessionRoutes(app: FastifyInstance) {
 
   app.post("/api/sessions/:id/retry", staff, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const { studentId, caseId } = z.object({ studentId: z.string().uuid(), caseId: z.string() }).parse(req.body);
+    const { studentId, caseId, reason } = z.object({ studentId: z.string().uuid(), caseId: z.string(), reason: z.enum(["technical", "other"]).default("other") }).parse(req.body);
     const s = await staffSession(app, req, id);
     if (!s.cases.some((c: { caseId: string }) => c.caseId === caseId)) throw badRequest("case is not in this session");
-    await app.db.query("INSERT INTO retry_grants (session_id, student_id, case_id, granted_by) VALUES ($1, $2, $3, $4)", [id, studentId, caseId, req.user.id]);
+    await app.db.query("INSERT INTO retry_grants (session_id, student_id, case_id, granted_by, reason) VALUES ($1, $2, $3, $4, $5)", [id, studentId, caseId, req.user.id, reason]);
     return reply.code(201).send({ ok: true });
   });
 

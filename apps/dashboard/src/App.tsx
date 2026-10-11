@@ -4,14 +4,28 @@ import { CasesPage } from "./pages/Cases.js";
 import { CoursesPage, LabsPage, UsersPage } from "./pages/Admin.js";
 import { HealthPage } from "./pages/Health.js";
 import { Login } from "./pages/Login.js";
+import { PilotPage, ReadinessPage, ScoreReviewPage } from "./pages/Pilot.js";
 import { SessionDetail } from "./pages/SessionDetail.js";
 import { SessionsPage } from "./pages/Sessions.js";
 
-export type Route = { page: "sessions" } | { page: "session"; id: string } | { page: "cases" } | { page: "users" } | { page: "courses" } | { page: "labs" } | { page: "health" };
+export type Route =
+  | { page: "sessions" }
+  | { page: "session"; id: string }
+  | { page: "cases" }
+  | { page: "review" }
+  | { page: "readiness" }
+  | { page: "pilot" }
+  | { page: "users" }
+  | { page: "courses" }
+  | { page: "labs" }
+  | { page: "health" };
 
 const NAV: { page: Route["page"]; label: string; roles: Me["role"][] }[] = [
   { page: "sessions", label: "Sessions", roles: ["instructor", "admin"] },
   { page: "cases", label: "Case library", roles: ["instructor", "case_author", "admin"] },
+  { page: "review", label: "Score review", roles: ["case_author", "admin"] },
+  { page: "readiness", label: "Seat readiness", roles: ["instructor", "admin"] },
+  { page: "pilot", label: "Pilot report", roles: ["instructor", "admin"] },
   { page: "users", label: "Users", roles: ["admin"] },
   { page: "courses", label: "Courses", roles: ["admin"] },
   { page: "labs", label: "Labs", roles: ["admin"] },
@@ -82,6 +96,9 @@ export function App() {
         {current.page === "sessions" && <SessionsPage me={me} />}
         {current.page === "session" && <SessionDetail id={current.id} />}
         {current.page === "cases" && <CasesPage me={me} />}
+        {current.page === "review" && <ScoreReviewPage />}
+        {current.page === "readiness" && <ReadinessPage />}
+        {current.page === "pilot" && <PilotPage me={me} />}
         {current.page === "users" && <UsersPage />}
         {current.page === "courses" && <CoursesPage />}
         {current.page === "labs" && <LabsPage />}

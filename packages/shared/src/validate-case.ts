@@ -2,6 +2,20 @@ import type { ZodIssue } from "zod";
 import { CaseDefinition } from "./case-schema.js";
 import { ACTIONS_BY_ID, EXAM_POINTS_BY_ID, TESTS_BY_ID } from "./libraries/index.js";
 
+/** Media files a case refers to (relative to the case media folder), with where each is used. */
+export function caseMedia(c: CaseDefinition): { path: string; where: string }[] {
+  const out: { path: string; where: string }[] = [];
+  c.examination.forEach((e, i) => {
+    if (e.finding.sound) out.push({ path: e.finding.sound, where: `examination.${i}.finding.sound` });
+    if (e.finding.image) out.push({ path: e.finding.image, where: `examination.${i}.finding.image` });
+  });
+  c.investigations.forEach((t, i) => {
+    if (t.result.image) out.push({ path: t.result.image, where: `investigations.${i}.result.image` });
+    if (t.result.ecg) out.push({ path: t.result.ecg, where: `investigations.${i}.result.ecg` });
+  });
+  return out;
+}
+
 export interface CaseIssue {
   path: string;
   message: string;

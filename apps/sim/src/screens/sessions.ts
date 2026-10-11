@@ -1,11 +1,13 @@
 import { api } from "../api.js";
 import type { Ctx } from "../context.js";
 import { h, mount } from "../ui.js";
+import { courseSurvey } from "./surveys.js";
 
 interface MySession {
   id: string;
   status: string;
   course: string;
+  courseId: string;
   lab: string;
   labId: string;
   endsAt: string;
@@ -23,7 +25,11 @@ const getSeat = (labId: string) => {
 
 export async function sessionsScreen(_ctx: Ctx, start: (sessionId: string, caseId: string, seatId: string | null) => void): Promise<void> {
   mount(h("main.center", h("p", "Loading your sessions…")));
-  const [sessions, labs] = await Promise.all([api<MySession[]>("GET", "/api/my/sessions"), api<{ id: string; seats: { id: string; label: string }[] }[]>("GET", "/api/labs")]);
+  const [sessions, labs, answered] = await Promise.all([
+    api<MySession[]>("GET", "/api/my/sessions"),
+    api<{ id: string; seats: { id: string; label: string }[] }[]>("GET", "/api/labs"),
+    api<{ kind: string; courseId: string | null }[]>("GET", "/api/my/surveys"),
+  ]);
   if (!sessions.length) {
     mount(h("main.center", h("div.card.narrow", h("h1", "No open session"), h("p", "Your instructor has not opened a session for your course yet."), h("button", { on: { click: () => location.reload() } }, "Check again"))));
     return;
@@ -54,5 +60,9 @@ export async function sessionsScreen(_ctx: Ctx, start: (sessionId: string, caseI
       }),
     );
   });
-  mount(h("main.page", h("h1", "Your sessions"), ...list));
+  // End-of-course feedback, once per course, for courses where the student has finished a case.
+  const feedback = [...new Map(sessions.filter((s) => s.cases.some((c) => c.attempts.some((a) => a.status === "finished"))).map((s) => [s.courseId, s.course])).entries()]
+    .filter(([id]) => !answered.some((x) => x.kind === "student_course" && x.courseId === id))
+    .map(([id, label]) => h("button.big", { on: { click: () => courseSurvey(id, label, () => void sessionsScreen(_ctx, start)) } }, `Course feedback: ${label}`));
+  mount(h("main.page", h("h1", "Your sessions"), ...list, ...(feedback.length ? [h("section.card", h("p", "Tell us how the simulation worked for you this course."), h("div.row", ...feedback))] : [])));
 }

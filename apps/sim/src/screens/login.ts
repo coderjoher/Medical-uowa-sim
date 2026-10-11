@@ -2,7 +2,8 @@ import { api, auth, ApiError } from "../api.js";
 import type { Ctx, User } from "../context.js";
 import { h, mount } from "../ui.js";
 
-export function loginScreen(ctx: Ctx, next: () => void): void {
+/** @param allowStaff tools that staff may use too (lab check, tracking test). */
+export function loginScreen(ctx: Ctx, next: () => void, allowStaff = false): void {
   const err = h("p.error", { role: "alert" });
   const username = h("input", { name: "username", autocomplete: "username", required: true, "aria-label": "Username" });
   const password = h("input", { name: "password", type: "password", autocomplete: "current-password", required: true, "aria-label": "Password" });
@@ -16,7 +17,7 @@ export function loginScreen(ctx: Ctx, next: () => void): void {
           try {
             const r = await api<{ token: string; user: User }>("POST", "/api/auth/login", { username: username.value, password: password.value });
             const preview = new URLSearchParams(location.search).has("preview");
-            if (preview ? !["case_author", "admin"].includes(r.user.role) : r.user.role !== "student") {
+            if (preview ? !["case_author", "admin"].includes(r.user.role) : !allowStaff && r.user.role !== "student") {
               err.textContent = preview ? "Preview is for case authors and admins." : "This app is for students. Staff use the dashboard.";
               return;
             }
@@ -34,7 +35,7 @@ export function loginScreen(ctx: Ctx, next: () => void): void {
     h("label", "Password", password),
     h("button.primary", { type: "submit" }, "Sign in"),
     err,
-    h("p.muted", h("a", { href: "?labcheck=1" }, "Run the lab check for this seat")),
+    h("p.muted", h("a", { href: "?labcheck=1" }, "Lab check for this seat"), " · ", h("a", { href: "?trackingtest=1" }, "Hand-tracking test")),
   );
   mount(h("main.center", form));
   username.focus();

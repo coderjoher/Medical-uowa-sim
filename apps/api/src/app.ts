@@ -12,6 +12,7 @@ import { attemptRoutes } from "./routes/attempts.js";
 import { authRoutes, localAuthProvider } from "./routes/auth.js";
 import { caseRoutes } from "./routes/cases.js";
 import { liveRoutes } from "./routes/live.js";
+import { pilotRoutes } from "./routes/pilot.js";
 import { sessionRoutes } from "./routes/sessions.js";
 
 export interface AppOptions {
@@ -21,8 +22,8 @@ export interface AppOptions {
   logger?: boolean;
   /** File written by the backup job with the time of the last successful backup. */
   backupStatusFile?: string;
-  /** Built web apps to serve, e.g. [{ prefix: "/", root: ".../sim/dist" }]. */
-  staticSites?: { prefix: string; root: string }[];
+  /** Built web apps and media to serve, e.g. [{ prefix: "/", root: ".../sim/dist", spa: true }]. */
+  staticSites?: { prefix: string; root: string; spa?: boolean }[];
 }
 
 declare module "fastify" {
@@ -33,12 +34,12 @@ declare module "fastify" {
   }
 }
 
-/** Hashed build assets and models can be cached for long; index.html must always revalidate. */
-function cacheHeaders(reply: FastifyReply, path: string) {
-  if (/\/assets\/.+-[A-Za-z0-9_-]{8}\.[a-z0-9]+$/.test(path)) reply.header("cache-control", "public, max-age=31536000, immutable");
-  else if (/\.(glb|task|wasm|mp3|png|jpg)$/.test(path)) reply.header("cache-control", "public, max-age=86400");
+/** Cache policy per site: Vite's hashed build files never change; everything else revalidates or is cached a day. */
+const cacheHeaders = (hashedBuild: boolean) => (reply: FastifyReply, path: string) => {
+  if (hashedBuild && /[\\/]assets[\\/][^\\/]+-[A-Za-z0-9_-]{8}\.(js|css|wasm|svg|png|woff2?)$/.test(path)) reply.header("cache-control", "public, max-age=31536000, immutable");
+  else if (/\.(glb|task|wasm|wav|mp3|png|jpg|svg)$/.test(path)) reply.header("cache-control", "public, max-age=86400");
   else reply.header("cache-control", "no-cache");
-}
+};
 
 export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: opts.logger ?? false, bodyLimit: 5 * 1024 * 1024 });
@@ -72,16 +73,17 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   await app.register(sessionRoutes);
   await app.register(attemptRoutes);
   await app.register(liveRoutes);
+  await app.register(pilotRoutes);
 
   // Serve the built student app and dashboard from the same origin (one server on the LAN).
   for (const [i, site] of (opts.staticSites ?? []).entries()) {
-    await app.register(fastifyStatic, { root: site.root, prefix: site.prefix, decorateReply: i === 0, wildcard: true, cacheControl: false, setHeaders: cacheHeaders });
+    await app.register(fastifyStatic, { root: site.root, prefix: site.prefix, decorateReply: i === 0, wildcard: true, cacheControl: false, setHeaders: cacheHeaders(!!site.spa) });
   }
   if (opts.staticSites?.length) {
     // Single-page apps: unknown non-API paths fall back to the site's index.html.
     app.setNotFoundHandler((req, reply) => {
       if (req.url.startsWith("/api/")) return reply.code(404).send({ error: "not found" });
-      const site = [...opts.staticSites!].sort((a, b) => b.prefix.length - a.prefix.length).find((s) => req.url.startsWith(s.prefix));
+      const site = [...opts.staticSites!].filter((s) => s.spa).sort((a, b) => b.prefix.length - a.prefix.length).find((s) => req.url.startsWith(s.prefix));
       if (!site) return reply.code(404).send({ error: "not found" });
       return reply.sendFile("index.html", site.root);
     });

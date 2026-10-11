@@ -41,10 +41,10 @@ export function SessionDetail({ id }: { id: string }) {
     }
   };
 
-  const retry = async (s: Seat) => {
+  const retry = async (s: Seat, reason: "technical" | "other") => {
     try {
-      await api("POST", `/api/sessions/${id}/retry`, { studentId: s.studentId, caseId: s.caseId });
-      setMsg(`Retry allowed for ${s.studentName}.`);
+      await api("POST", `/api/sessions/${id}/retry`, { studentId: s.studentId, caseId: s.caseId, reason });
+      setMsg(`Retry allowed for ${s.studentName}${reason === "technical" ? " (technical problem — counted in the pilot report)" : ""}.`);
     } catch (e) {
       setMsg(errorText(e));
     }
@@ -100,7 +100,12 @@ export function SessionDetail({ id }: { id: string }) {
                     {w}
                   </p>
                 ))}
-                {s.status === "finished" && status !== "ended" && <button onClick={() => retry(s)}>Allow retry</button>}
+                {s.status === "finished" && status !== "ended" && (
+                  <div className="row">
+                    <button onClick={() => retry(s, "other")}>Allow retry</button>
+                    <button onClick={() => retry(s, "technical")}>Retry: technical problem</button>
+                  </div>
+                )}
               </article>
             ))}
           </div>

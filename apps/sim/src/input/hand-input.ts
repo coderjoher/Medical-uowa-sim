@@ -40,6 +40,10 @@ export class HandInput {
   private running = false;
   private inFlight = false;
   private frameTimes: number[] = [];
+  /** Frame capture -> landmarks processed, per frame (ms). */
+  private latencies: number[] = [];
+  /** Counters since the last telemetry sample. */
+  private counters = { handLost: 0, pinches: 0 };
   private brightness = 1;
   private lumaCanvas = document.createElement("canvas");
 
@@ -78,6 +82,20 @@ export class HandInput {
     const t = this.frameTimes;
     if (t.length < 2) return 0;
     return ((t.length - 1) * 1000) / (t[t.length - 1]! - t[0]!);
+  }
+
+  /** 95th percentile of capture-to-processed latency over the last ~10 s (ms). */
+  get pipelineP95(): number | null {
+    if (!this.latencies.length) return null;
+    const s = [...this.latencies].sort((a, b) => a - b);
+    return Math.round(s[Math.floor(0.95 * (s.length - 1))]! * 10) / 10;
+  }
+
+  /** Telemetry since the last call: frame rate, latency, hand losses, clicks. */
+  takeStats() {
+    const out = { fps: Math.round(this.fps * 10) / 10, pipelineP95Ms: this.pipelineP95, handLost: this.counters.handLost, pinches: this.counters.pinches };
+    this.counters = { handLost: 0, pinches: 0 };
+    return out;
   }
 
   get lightLevel(): number {
@@ -126,6 +144,8 @@ export class HandInput {
       if (e.data.type !== "result") return;
       this.inFlight = false;
       this.process({ tMs: e.data.tMs, hands: e.data.hands });
+      this.latencies.push(performance.now() - e.data.tMs);
+      if (this.latencies.length > 300) this.latencies.shift();
     };
     this.running = true;
     this.enabled = true;
@@ -242,6 +262,8 @@ export class HandInput {
   }
 
   private handleGesture(e: GestureEvent) {
+    if (e.type === "hand-lost") this.counters.handLost++;
+    if (e.type === "pinch-start") this.counters.pinches++;
     if (e.type === "pinch-start" && this.hovered) {
       const h = this.hovered;
       this.asHand(() => {

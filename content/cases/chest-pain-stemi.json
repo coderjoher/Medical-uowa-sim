@@ -44,9 +44,9 @@
     { "id": "general_inspection", "finding": { "text": "Pale, sweaty, clutching his chest, in obvious discomfort." }, "relevant": true, "points": 1 },
     { "id": "radial_pulse", "finding": { "text": "Regular, 98 bpm." }, "relevant": true, "points": 1 },
     { "id": "blood_pressure", "finding": { "text": "148/92 in both arms." }, "relevant": true, "points": 2, "feedback": "Checking BP in both arms helps exclude aortic dissection." },
-    { "id": "heart_auscultation", "finding": { "text": "Normal heart sounds, no murmurs.", "sound": "sounds/heart-normal.mp3" }, "relevant": true, "points": 3 },
-    { "id": "chest_auscultation_front", "finding": { "text": "Vesicular breath sounds, no crackles.", "sound": "sounds/lung-normal.mp3" }, "relevant": true, "points": 3 },
-    { "id": "chest_auscultation_back", "finding": { "text": "Clear bases.", "sound": "sounds/lung-normal.mp3" }, "relevant": true, "points": 1 },
+    { "id": "heart_auscultation", "finding": { "text": "Normal heart sounds, no murmurs.", "sound": "sounds/heart-normal.wav" }, "relevant": true, "points": 3 },
+    { "id": "chest_auscultation_front", "finding": { "text": "Vesicular breath sounds, no crackles.", "sound": "sounds/lung-normal.wav" }, "relevant": true, "points": 3 },
+    { "id": "chest_auscultation_back", "finding": { "text": "Clear bases.", "sound": "sounds/lung-normal.wav" }, "relevant": true, "points": 1 },
     { "id": "jvp", "finding": { "text": "JVP not raised." }, "relevant": true, "points": 1 },
     { "id": "ankle_oedema", "finding": { "text": "No oedema." }, "relevant": true, "points": 1 },
     { "id": "abdomen_palpation", "finding": { "text": "Soft, non-tender." }, "relevant": false },
@@ -68,12 +68,12 @@
     ]
   },
   "investigations": [
-    { "id": "ecg", "result": { "text": "Sinus rhythm 98 bpm. ST elevation in II, III and aVF with reciprocal ST depression in I and aVL.", "ecg": "ecg/inferior-stemi.png" }, "turnaroundMin": 0.5, "indicated": true, "points": 5, "feedback": "An ECG within 10 minutes of arrival is the key test in chest pain." },
+    { "id": "ecg", "result": { "text": "Sinus rhythm 98 bpm. ST elevation in II, III and aVF with reciprocal ST depression in I and aVL.", "ecg": "ecg/inferior-stemi.svg" }, "turnaroundMin": 0.5, "indicated": true, "points": 5, "feedback": "An ECG within 10 minutes of arrival is the key test in chest pain." },
     { "id": "troponin", "result": { "text": "High-sensitivity troponin raised.", "values": [ { "name": "hs-TnI", "value": "860", "unit": "ng/L", "flag": "critical" } ] }, "turnaroundMin": 6, "indicated": true, "points": 3 },
     { "id": "fbc", "result": { "text": "Normal.", "values": [ { "name": "Hb", "value": "148", "unit": "g/L", "flag": "normal" } ] }, "turnaroundMin": 4, "indicated": true, "points": 1 },
     { "id": "u_and_e", "result": { "text": "Normal renal function.", "values": [ { "name": "Creatinine", "value": "88", "unit": "umol/L", "flag": "normal" }, { "name": "K", "value": "4.1", "unit": "mmol/L", "flag": "normal" } ] }, "turnaroundMin": 4, "indicated": true, "points": 1 },
     { "id": "glucose", "result": { "text": "6.4 mmol/L." }, "turnaroundMin": 0.5, "indicated": true, "points": 1 },
-    { "id": "cxr", "result": { "text": "Normal heart size, clear lung fields, normal mediastinum.", "image": "images/cxr-normal.png" }, "turnaroundMin": 3, "indicated": true, "points": 1 },
+    { "id": "cxr", "result": { "text": "Normal heart size, clear lung fields, normal mediastinum.", "image": "images/cxr-normal.svg" }, "turnaroundMin": 3, "indicated": true, "points": 1 },
     { "id": "ct_chest", "result": { "text": "No acute abnormality." }, "turnaroundMin": 8, "indicated": false, "penalty": 1, "feedback": "CT chest does not change management in a clear STEMI and delays reperfusion." },
     { "id": "d_dimer", "result": { "text": "Mildly raised." }, "turnaroundMin": 4, "indicated": false, "penalty": 1 },
     { "id": "lft", "result": { "text": "Normal." }, "turnaroundMin": 4, "indicated": false, "penalty": 0.5 }

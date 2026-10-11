@@ -1,3 +1,4 @@
+import { NON_CLINICAL_TYPES } from "@sim/shared";
 import type { Db } from "./db.js";
 
 const STEP_OF: Record<string, string> = {
@@ -38,12 +39,13 @@ export async function sessionSeats(db: Db, sessionId: string, attemptId?: string
      LEFT JOIN seats s ON s.id = a.seat_id
      LEFT JOIN LATERAL (
        SELECT type, ref, case_time_ms, input_source FROM actions x
-       WHERE x.attempt_id = a.id AND x.type NOT IN ('tracking.lost', 'tracking.recalibrate', 'input.switch')
+       WHERE x.attempt_id = a.id AND x.type <> ALL($3::text[])
        ORDER BY x.seq DESC LIMIT 1
      ) last ON true
      WHERE a.session_id = $1 AND ($2::uuid IS NULL OR a.id = $2)
      ORDER BY s.label NULLS LAST, u.display_name, a.attempt_no`,
-    [sessionId, attemptId ?? null],
+    // The seat's step follows the last clinical action or view change, not tracking/input events.
+    [sessionId, attemptId ?? null, NON_CLINICAL_TYPES.filter((t) => t !== "view.change")],
   );
   const now = Date.now();
   return rows.map((r) => {

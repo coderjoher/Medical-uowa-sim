@@ -14,8 +14,9 @@ const app = await buildApp({
   db,
   jwtSecret: "e2e-secret-0123456789-abcdefghijk",
   staticSites: [
-    { prefix: "/staff/", root: fileURLToPath(new URL("../apps/dashboard/dist/", import.meta.url)) },
-    { prefix: "/", root: fileURLToPath(new URL("../apps/sim/dist/", import.meta.url)) },
+    { prefix: "/media/", root: fileURLToPath(new URL("../content/assets/", import.meta.url)), spa: false },
+    { prefix: "/staff/", root: fileURLToPath(new URL("../apps/dashboard/dist/", import.meta.url)), spa: true },
+    { prefix: "/", root: fileURLToPath(new URL("../apps/sim/dist/", import.meta.url)), spa: true },
   ].filter((s) => existsSync(s.root)),
 });
 await app.listen({ port: Number(process.env.E2E_PORT ?? 4100), host: "127.0.0.1" });

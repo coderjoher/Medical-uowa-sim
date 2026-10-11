@@ -33,7 +33,7 @@ COPY content ./content
 COPY apps/api ./apps/api
 COPY --from=build /app/apps/sim/dist ./apps/sim/dist
 COPY --from=build /app/apps/dashboard/dist ./apps/dashboard/dist
-ENV SIM_DIR=/app/apps/sim/dist DASHBOARD_DIR=/app/apps/dashboard/dist PORT=3000
+ENV SIM_DIR=/app/apps/sim/dist DASHBOARD_DIR=/app/apps/dashboard/dist MEDIA_DIR=/app/content/assets PORT=3000
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"

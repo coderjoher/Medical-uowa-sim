@@ -3,6 +3,7 @@ import type { StudentCase } from "@sim/shared";
 import { api } from "../api.js";
 import { itemLabel, labelFor } from "../player/labels.js";
 import { fmtTime, h, mount } from "../ui.js";
+import { caseSurvey } from "./surveys.js";
 
 export interface Debrief {
   report: ScoreReport;
@@ -71,6 +72,7 @@ export async function debriefScreen(attemptId: string, sc: StudentCase, back: ()
         h("h2", "Your timeline"),
         h("ol.timeline", ...d.timeline.map((t) => h("li", h("span.time", fmtTime(t.caseTimeMs)), labelFor(sc, t.type, t.ref)))),
       ),
+      preloaded ? null : caseSurvey(attemptId),
       h("button.primary.big", { on: { click: back } }, "Back to sessions"),
     ),
   );

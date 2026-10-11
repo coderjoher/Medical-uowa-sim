@@ -25,8 +25,26 @@ services:
       DATABASE_URL: postgres://sim:${POSTGRES_PASSWORD}@db:5432/sim
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
       BACKUP_STATUS_FILE: /backups/last-success
+      # University sign-in (optional; see docs/ldap.md). Leave LDAP_URL empty for local accounts only.
+      LDAP_URL: ${LDAP_URL:-}
+      LDAP_BIND_DN: ${LDAP_BIND_DN:-}
+      LDAP_BIND_PASSWORD: ${LDAP_BIND_PASSWORD:-}
+      LDAP_USER_BASE: ${LDAP_USER_BASE:-}
+      LDAP_USER_FILTER: ${LDAP_USER_FILTER:-}
+      LDAP_DISPLAY_NAME_ATTR: ${LDAP_DISPLAY_NAME_ATTR:-}
+      LDAP_GROUP_ATTR: ${LDAP_GROUP_ATTR:-}
+      LDAP_ADMIN_GROUPS: ${LDAP_ADMIN_GROUPS:-}
+      LDAP_INSTRUCTOR_GROUPS: ${LDAP_INSTRUCTOR_GROUPS:-}
+      LDAP_AUTHOR_GROUPS: ${LDAP_AUTHOR_GROUPS:-}
+      LDAP_STUDENT_GROUPS: ${LDAP_STUDENT_GROUPS:-}
+      LDAP_DEFAULT_ROLE: ${LDAP_DEFAULT_ROLE:-}
+      LDAP_STARTTLS: ${LDAP_STARTTLS:-}
+      LDAP_TIMEOUT_MS: ${LDAP_TIMEOUT_MS:-}
+      LDAP_TLS_CA: ${LDAP_TLS_CA:-}
     volumes:
       - backups:/backups:ro
+      # Directory CA certificate, if LDAP_TLS_CA points at /certs/ldap-ca.pem
+      - ./deploy/certs:/certs:ro
 
   https:
     image: caddy:2.10

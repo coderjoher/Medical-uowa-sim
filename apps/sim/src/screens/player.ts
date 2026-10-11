@@ -44,7 +44,7 @@ const GENERIC_TURNAROUND_MIN = 2;
  * full case and the debrief from the preview scorer.
  */
 export interface PreviewMode {
-  results: Map<string, { text: string; values?: { name: string; value: string; unit?: string; flag?: string }[] }>;
+  results: Map<string, { text: string; values?: { name: string; value: string; unit?: string; flag?: string }[]; image?: string; ecg?: string }>;
   score: (actions: readonly LoggedAction[]) => Promise<Debrief>;
 }
 
@@ -67,7 +67,7 @@ export async function playerScreen(
   let checkpointOpen = false;
   let closeTop: (() => void) | null = null;
   let ending = false;
-  const results = new Map<string, { text: string; values?: { name: string; value: string; unit?: string; flag?: string }[] }>();
+  const results = new Map<string, { text: string; values?: { name: string; value: string; unit?: string; flag?: string }[]; image?: string; ecg?: string }>();
   const unregister: (() => void)[] = [];
 
   // ---- Layout -------------------------------------------------------------------------------
@@ -140,11 +140,33 @@ export async function playerScreen(
 
   const playSound = (path?: string) => {
     if (!path) return;
-    const a = new Audio(`/assets/${path}`);
+    const a = new Audio(`/media/${path}`);
     a.play().catch(() => {});
   };
 
   const setActiveNav = () => nav.querySelectorAll("[data-panel]").forEach((b) => b.classList.toggle("active", (b as HTMLElement).dataset.panel === panel));
+
+  /** An image or ECG from the case media, enlarged in a modal when clicked or pinched. */
+  const figure = (path: string, alt: string) => {
+    const img = h("img.media", { src: `/media/${path}`, alt, loading: "lazy" });
+    img.addEventListener("error", () => img.replaceWith(h("small.muted", "(image not available — see the text result)")));
+    return h(
+      "button.media-button",
+      {
+        "aria-label": `Enlarge ${alt}`,
+        on: {
+          click: () => {
+            const close = modal(h("div", h("img.media-large", { src: `/media/${path}`, alt }), h("button.big", { on: { click: () => (close(), (closeTop = null)) } }, "Close")), {
+              label: alt,
+              onClose: () => (closeTop = null),
+            });
+            closeTop = close;
+          },
+        },
+      },
+      img,
+    );
+  };
 
   const openPanel = (p: Panel | null) => {
     panel = p;
@@ -211,7 +233,21 @@ export async function playerScreen(
       h("div.tray", { role: "group", "aria-label": "Instrument tray" }, ...TOOLS.map((t) => h("button.tool", { class: tool === t.id ? "tool active" : "tool", "aria-pressed": tool === t.id, on: { click: () => pickTool(t.id) } }, t.label))),
       h("div.tabs", ...(["overview", "chest", "head", "back"] as View[]).map((v) => h("button", { class: scene.view === v ? "active" : "", on: { click: () => setView(v) } }, VIEW_LABEL[v]))),
       tool ? h("div.list.compact", ...EXAM_POINTS.filter((p) => p.tool === tool).map((p) => h("button.item", { class: found.includes(p.id) ? "item done" : "item", on: { click: () => examine(p.id) } }, p.label))) : null,
-      found.length ? h("div.findings", h("h3", "Findings"), ...[...new Set(found)].map((id) => h("p", h("strong", `${EXAM_POINTS_BY_ID.get(id)?.label}: `), findingText(id)))) : null,
+      found.length
+        ? h(
+            "div.findings",
+            h("h3", "Findings"),
+            ...[...new Set(found)].map((id) => {
+              const f = sc.examination.find((e) => e.id === id)?.finding;
+              return h(
+                "div",
+                h("p", h("strong", `${EXAM_POINTS_BY_ID.get(id)?.label}: `), findingText(id)),
+                f?.sound ? h("button.small", { on: { click: () => playSound(f.sound) } }, "▶ Listen again") : null,
+                f?.image ? figure(f.image, EXAM_POINTS_BY_ID.get(id)?.label ?? "Finding") : null,
+              );
+            }),
+          )
+        : null,
     );
   };
   const findingText = (id: string) => sc.examination.find((e) => e.id === id)?.finding.text ?? "No abnormality found.";
@@ -274,8 +310,14 @@ export async function playerScreen(
       ),
     );
   };
-  const resultView = (r: { text: string; values?: { name: string; value: string; unit?: string; flag?: string }[] }) =>
-    h("div.result", h("p", r.text), ...(r.values ?? []).map((v) => h("p", { class: `flag-${v.flag ?? "normal"}` }, `${v.name}: ${v.value} ${v.unit ?? ""}`)));
+  const resultView = (r: { text: string; values?: { name: string; value: string; unit?: string; flag?: string }[]; image?: string; ecg?: string }) =>
+    h(
+      "div.result",
+      h("p", r.text),
+      ...(r.values ?? []).map((v) => h("p", { class: `flag-${v.flag ?? "normal"}` }, `${v.name}: ${v.value} ${v.unit ?? ""}`)),
+      r.ecg ? figure(r.ecg, "ECG") : null,
+      r.image ? figure(r.image, "Image") : null,
+    );
   const order = (id: string) => {
     rt.record("investigation.order", id);
     toast(`${TESTS_BY_ID.get(id)?.label} ordered`);
@@ -550,6 +592,10 @@ export async function playerScreen(
     if (rt.started && rt.timeLeftMs <= 0) void timeUp();
   };
   const loop = setInterval(tick, 500);
+  // Hand-tracking health every minute, for the tracking metrics in the pilot report.
+  const statsLoop = setInterval(() => {
+    if (ctx.mode === "hand" && rt.started && !ending) rt.record("tracking.stats", undefined, { ...ctx.hand.takeStats(), renderFps: Math.round(scene.engine.getFps()) }, "system");
+  }, 60_000);
   const resultsLoop = setInterval(() => void fetchReadyResults(), 2000);
   recorder.onStatus = (online, pending) => {
     syncChip.textContent = online ? (pending ? `Saving (${pending})` : "Saved") : `Offline — ${pending} saved on this PC`;
@@ -625,6 +671,7 @@ export async function playerScreen(
     ending = true;
     clearInterval(loop);
     clearInterval(resultsLoop);
+    clearInterval(statsLoop);
     if (!byInstructor) rt.record("case.end");
     rt.clock.pause();
     document.querySelectorAll("[data-modal]").forEach((m) => m.remove());

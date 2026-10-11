@@ -44,8 +44,8 @@ export class CaseRuntime {
     return this.log.some((a) => a.type === type && (ref === undefined || a.ref === ref));
   }
 
-  record(type: ActionType, ref?: string, payload?: Record<string, unknown>): ActionLogEntry {
-    const e = this.recorder.record(type, ref, this.now, this.source(), payload);
+  record(type: ActionType, ref?: string, payload?: Record<string, unknown>, source: InputSource = this.source()): ActionLogEntry {
+    const e = this.recorder.record(type, ref, this.now, source, payload);
     this.log.push(e);
     return e;
   }

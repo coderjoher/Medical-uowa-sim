@@ -9,7 +9,9 @@
     "seed": "tsx src/seed.ts"
   },
   "dependencies": {
+    "@fastify/helmet": "^13.1.2",
     "@fastify/jwt": "^10.2.4",
+    "@fastify/rate-limit": "^11.2.1",
     "@fastify/static": "^10.1.6",
     "@fastify/websocket": "^11.3.4",
     "@sim/case-sheet": "0.1.0",
@@ -17,6 +19,7 @@
     "@sim/shared": "0.1.0",
     "exceljs": "^4.4.0",
     "fastify": "^5.12.5",
+    "ldapts": "^9.2.0",
     "pdfkit": "^0.17.2",
     "pg": "^8.23.1",
     "tsx": "^4.20.6",

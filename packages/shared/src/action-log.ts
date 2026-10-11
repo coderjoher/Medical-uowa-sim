@@ -22,6 +22,8 @@ export const ActionType = z.enum([
   "input.switch",
   "tracking.lost",
   "tracking.recalibrate",
+  /** Periodic hand-tracking health sample: fps, pipeline latency, losses since the last sample. */
+  "tracking.stats",
 ]);
 export type ActionType = z.infer<typeof ActionType>;
 
@@ -39,6 +41,9 @@ export const ActionLogEntry = z.object({
   inputSource: InputSource,
 });
 export type ActionLogEntry = z.infer<typeof ActionLogEntry>;
+
+/** Actions about the session or input, not clinical decisions: left out of timelines and seat steps. */
+export const NON_CLINICAL_TYPES: readonly ActionType[] = ["view.change", "tracking.lost", "tracking.recalibrate", "tracking.stats", "input.switch"];
 
 export const DiagnosisPayload = z.object({ main: z.string(), differentials: z.array(z.string()).default([]) });
 export const AnswerPayload = z.object({ selected: z.array(z.string()) });
