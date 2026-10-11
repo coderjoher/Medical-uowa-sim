@@ -1,6 +1,7 @@
 import { api } from "../api.js";
 import type { Ctx } from "../context.js";
-import { SimScene } from "../scene/scene.js";
+
+import type { SimScene as SimSceneT } from "../scene/scene.js";
 import { h, mount } from "../ui.js";
 import { drawPreview } from "./calibration.js";
 
@@ -69,7 +70,9 @@ export async function labCheckScreen(ctx: Ctx, seatId: string | null): Promise<v
   // 3D frame rate with the real room and patient, measured after the scene has warmed up.
   const canvas = document.getElementById("scene") as HTMLCanvasElement;
   canvas.style.visibility = "visible";
-  const scene = new SimScene(canvas);
+  // The 3D engine loads on demand, so sign-in and the session list stay light.
+  const { SimScene } = await import("../scene/scene.js");
+  const scene: SimSceneT = new SimScene(canvas);
   scene.vitals = { hr: 80, sbp: 120, dbp: 80, rr: 16, spo2: 98, temp: 36.8 };
   void scene.load("adult_male").then(() =>
     setTimeout(() => {

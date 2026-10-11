@@ -1,4 +1,5 @@
-import { DynamicTexture, type Scene } from "@babylonjs/core";
+import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
+import { type Scene } from "@babylonjs/core/scene";
 import type { Vitals } from "@sim/shared";
 
 /** Vital-signs monitor face drawn onto a dynamic texture, with a scrolling ECG trace. */

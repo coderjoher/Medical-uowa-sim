@@ -4,7 +4,7 @@ import { api, liveSocket } from "../api.js";
 import type { Ctx } from "../context.js";
 import type { LoggedAction } from "@sim/engine";
 import { CaseRuntime } from "../player/case-runtime.js";
-import { SimScene, type View } from "../scene/scene.js";
+import type { SimScene as SimSceneT, View } from "../scene/scene.js";
 import { ActionRecorder } from "../sync.js";
 import { fmtTime, h, modal, mount, toast } from "../ui.js";
 import { drawPreview } from "./calibration.js";
@@ -60,7 +60,9 @@ export async function playerScreen(
   const rt = new CaseRuntime(sc, payload.actions, recorder, () => ctx.hand.currentSource());
   const canvas = document.getElementById("scene") as HTMLCanvasElement;
   canvas.style.visibility = "visible";
-  const scene = new SimScene(canvas);
+  // The 3D engine loads on demand, so sign-in and the session list stay light.
+  const { SimScene } = await import("../scene/scene.js");
+  const scene: SimSceneT = new SimScene(canvas);
   let sessionStatus = payload.sessionStatus;
   let panel: Panel | null = null;
   let tool: ExamTool | null = null;

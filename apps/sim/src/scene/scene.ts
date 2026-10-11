@@ -1,21 +1,18 @@
-import {
-  ArcRotateCamera,
-  Color3,
-  Color4,
-  Engine,
-  HemisphericLight,
-  DirectionalLight,
-  Matrix,
-  MeshBuilder,
-  type Mesh,
-  Quaternion,
-  Scene,
-  StandardMaterial,
-  TransformNode,
-  Vector3,
-  ImportMeshAsync,
-} from "@babylonjs/core";
-import "@babylonjs/loaders/glTF";
+import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
+import { Engine } from "@babylonjs/core/Engines/engine";
+import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
+import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
+import { ImportMeshAsync } from "@babylonjs/core/Loading/sceneLoader";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
+import { Matrix, Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { type Mesh } from "@babylonjs/core/Meshes/mesh";
+import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
+import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
+import { Scene } from "@babylonjs/core/scene";
+// Deep imports keep the bundle to what the scene uses; these two register features by side effect.
+import "@babylonjs/core/Culling/ray"; // scene.pick for exam markers
+import "@babylonjs/loaders/glTF/2.0"; // .glb models
 import type { ExamTool } from "@sim/shared";
 import { EXAM_POINTS } from "@sim/shared";
 import type { Vitals } from "@sim/shared";
