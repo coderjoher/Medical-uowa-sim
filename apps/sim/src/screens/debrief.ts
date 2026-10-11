@@ -52,7 +52,14 @@ export async function debriefScreen(attemptId: string, sc: StudentCase, back: ()
         h(
           "table.areas",
           h("thead", h("tr", h("th", "Area"), h("th", "Points"))),
-          h("tbody", ...Object.entries(r.areas).map(([a, v]) => h("tr", h("td", AREA_LABEL[a] ?? a), h("td", v.max ? `${v.points} / ${v.max}` : `${v.points}`)))),
+          // Fixed order: stored reports come back from the database with keys reordered.
+          h(
+            "tbody",
+            ...(["history", "examination", "investigations", "diagnosis", "management", "safety"] as const).map((a) => {
+              const v = r.areas[a];
+              return h("tr", h("td", AREA_LABEL[a]!), h("td", v.max ? `${v.points} / ${v.max}` : `${v.points}`));
+            }),
+          ),
         ),
       ),
       h("section.card", h("h2", "Correct diagnosis"), h("p", itemLabel(sc, "diagnosis", d.diagnosis.correct)), d.diagnosis.feedback ? h("p.feedback", d.diagnosis.feedback) : null),

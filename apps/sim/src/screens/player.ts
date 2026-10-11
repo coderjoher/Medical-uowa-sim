@@ -58,7 +58,9 @@ export async function playerScreen(
   const attemptId = payload.attempt.id;
   const recorder = new ActionRecorder(attemptId, payload.actions, !!preview);
   const rt = new CaseRuntime(sc, payload.actions, recorder, () => ctx.hand.currentSource());
-  const scene = new SimScene(document.getElementById("scene") as HTMLCanvasElement);
+  const canvas = document.getElementById("scene") as HTMLCanvasElement;
+  canvas.style.visibility = "visible";
+  const scene = new SimScene(canvas);
   let sessionStatus = payload.sessionStatus;
   let panel: Panel | null = null;
   let tool: ExamTool | null = null;
@@ -641,6 +643,7 @@ export async function playerScreen(
     ctx.hand.onGesture = () => {};
     ctx.hand.onFrame = () => {};
     scene.dispose();
+    canvas.style.visibility = "hidden"; // otherwise the last frame stays behind the debrief
     finished(attemptId, sc, previewDebrief);
   };
 
