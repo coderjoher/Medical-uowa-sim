@@ -15,21 +15,21 @@ dependency order.
 
 ## Build status (updated Oct 11, 2026)
 
-Ticked items below are proven by automated tests in this repository (`npm test`: 127 unit and
-API tests; `npm run test:e2e`: 6 browser tests). Unticked items still need doing: most need the
+Ticked items below are proven by automated tests in this repository (`npm test`: 181 unit and
+API tests; `npm run test:e2e`: 14 browser tests). Unticked items still need doing: most need the
 real lab, real users or a sign-off, and some are partly built (see notes).
 
 | Phase | Built | Still open |
 |---|---|---|
-| 0 Foundations | Monorepo, TypeScript, lint, tests, CI workflow, Docker Compose (API + PostgreSQL + Caddy HTTPS + daily backups), production install and serving checked locally | `docker compose up` on the real server (Docker was not available in the build environment), lab PC benchmark, open questions |
-| 1 Hand tracking | MediaPipe in a Web Worker, One Euro smoothing, pinch hysteresis, hold timing, open-palm menu, swipe, confidence gating, hand-lost handling, calibration, snapping, cursor, camera preview, lighting warning, lab check page | Everything in the real lab (fps, latency, pinch accuracy, go/no-go); replay tests use synthetic landmarks, not recorded sessions |
-| 2 Case model | Schema, shared libraries, validator + CLI, reference case, spreadsheet template (one tab per case part, dropdowns from the shared lists) with import that reports problems by tab/row/column, versioned import in the dashboard, authoring guide | Finding sounds, ECG and X-ray images; academics' cases and template sign-off |
-| 3 Backend | Auth (local accounts; LDAP/SSO slot), roles, courses, labs, seats, sessions, attempts, idempotent action log, answer-free student payload, results release, live WebSocket, backup + restore script | University directory login; HTTPS on the real LAN |
-| 4 Room and player | Articraft models (room, bed, monitor, trolley, tools, 4 patients), breathing/blinking/pain animation, live monitor, all case steps, checkpoints, deterioration, captions + speech, refresh resume | Hand-only full-case replay test; frame-rate and load-time measurement on lab PCs; sound/image assets |
-| 5 Scoring | Rubric engine, weighting, critical errors, re-scoring, debrief | Academic review of sample attempts |
-| 6 Dashboard | Sessions, live seats, pause/resume/end, retry, results, Excel/PDF, case library with preview → sign-off → publish, users, courses, labs, health | Editing users' roles, bulk user import |
-| 7 Hardening | Offline buffering, refresh resume, same-origin only, consent notice, mouse mode | Load test for 2 full labs, crash recovery test, security review, lab check on every seat |
-| 8-10 Pilots | — | All |
+| 0 Foundations | Monorepo, TypeScript, lint, tests, CI (lint, typecheck, unit, LDAP, build, browser tests), Docker Compose (API + PostgreSQL + Caddy HTTPS + daily backups), production install checked locally | `docker compose up` on the real server, lab PC benchmark, open questions |
+| 1 Hand tracking | MediaPipe in a classic Web Worker (verified with a camera feed under the CSP), smoothing, pinch, holds, menu, swipe, calibration, snapping, lighting warning; **tracking test mode** (`/?trackingtest=1`) that measures pinch accuracy, false pinches, hand loss and latency and saves runs; tracking telemetry every minute during cases | Running the tests in the real lab and the go/no-go decision (`docs/pilot-runbook.md`) |
+| 2 Case model | Schema, libraries, validator (now also checks media files), spreadsheet template + import in the dashboard, authoring guide, 3 cases (2 marked DRAFT), placeholder heart/lung sounds, ECGs and X-rays served at `/media/` | Real licensed media; academics' cases and template sign-off |
+| 3 Backend | Local + **LDAP/AD** login, roles, courses, labs, seats, sessions, idempotent action log, answer-free student payload, live WebSocket, backups | University directory details; HTTPS on the real LAN |
+| 4 Room and player | Articraft models, animation, live monitor, all case steps, deterioration, captions, case media, data-driven test over all cases, scene loaded on demand (entry JS 38 KB gzip) | Frame rate and load time on lab PCs; model and sound review |
+| 5 Scoring | Rubric engine, critical errors, re-scoring, debrief, **score review** page for academics | Academics' agreement on sample attempts |
+| 6 Dashboard | Sessions, live seats, retry with reason, results, Excel/PDF, case library, user editing, **CSV roster import**, seat readiness, pilot report | — |
+| 7 Hardening | Offline buffering, crash and refresh resume, rate-limited login, CSP and security headers, security review, **load test of 60 and 240 students** | Lab check on every seat; university IT on backups/retention; penetration test |
+| 8-10 Pilots | Tools: lab check, tracking test, surveys, score review, pilot report with the PRD targets (Excel export), runbook | Running the alpha and pilots with real students and staff |
 
 | # | Phase | Weeks | Gate |
 |---|-------|-------|------|
@@ -97,7 +97,7 @@ Prototype scope (PRD pilot step 1): one patient, stethoscope exam only.
 - [ ] `[int]` Replay tests: recorded landmark sessions (good light, poor light, hand leaving frame) produce the expected gesture event sequence.
 - [ ] `[e2e]` Mouse and touch still click, drag and hold while tracking is active; switching to mouse is one action.
 - [x] `[e2e]` Every action log entry records its input source (hand / mouse / touch).
-- [ ] `[e2e]` Network inspection: no video frames or images leave the browser (no upload requests during a tracked session).
+- [x] `[e2e]` Network inspection: no video frames or images leave the browser (no upload requests during a tracked session). (`e2e/student.spec.ts` checks every request is same-origin JSON; `e2e/real-tracking.spec.ts` runs real MediaPipe on a fake camera.)
 
 **Exit checklist — in the real lab (10–15 students, stethoscope exam)**
 - [ ] `[perf]` Tracking frame rate **≥ 30 fps** on lab PCs.
@@ -131,7 +131,7 @@ Prototype scope (PRD pilot step 1): one patient, stethoscope exam only.
 - [x] `[unit]` Validator rejects invalid values: negative turnaround, vitals out of physiological range, weighting not summing to 100%, no correct diagnosis.
 - [x] `[int]` Spreadsheet template → import script → JSON round-trips the reference case with no data loss. (Also after re-saving in LibreOffice.)
 - [x] `[int]` Importing a changed case creates a **new version number**; older versions stay readable.
-- [ ] `[int]` Case JSON stored in the case/asset store; assets (sounds, images, ECGs) referenced by ID resolve.
+- [x] `[int]` Case JSON stored in the case/asset store; assets (sounds, images, ECGs) referenced by ID resolve. (`npm run validate:cases` checks every media path exists; files are served on the LAN at `/media/`, `e2e/pilot.spec.ts`.)
 - [ ] `[manual]` An academic fills the template for a second case with no developer help beyond the guide.
 - [ ] `[signoff]` Template and schema approved by the academic partners.
 - [ ] `[signoff]` First 5 cases drafted (PRD risk mitigation: start with 5, add the rest).
@@ -151,7 +151,7 @@ Prototype scope (PRD pilot step 1): one patient, stethoscope exam only.
 - Daily backups of database and case files with retention policy.
 
 **Exit checklist**
-- [ ] `[int]` Login works against university directory (or documented fallback); bad credentials rejected.
+- [x] `[int]` Login works against university directory (or documented fallback); bad credentials rejected. (LDAP / Active Directory against a real OpenLDAP in `apps/api/test/ldap.test.ts`; local break-glass admin kept. Needs the university's server details, `docs/ldap.md`.)
 - [x] `[int]` Role matrix test: each role can reach only its endpoints (student cannot read results of others, instructor cannot edit users, etc.).
 - [x] `[int]` Student joins only a session that an instructor launched for their course/lab.
 - [x] `[int]` Case payload sent to the student contains no correct diagnosis, rubric, harmful/correct flags, question answers or feedback; investigation results are released only after ordering + turnaround.
@@ -183,9 +183,9 @@ Prototype scope (PRD pilot step 1): one patient, stethoscope exam only.
 - [x] `[unit]` Deterioration event fires on time if the action is missing (e.g. SpO2 drops when oxygen not given within 5 case-minutes) and is cancelled if the action happens first.
 - [x] `[unit]` Investigation results appear only after their in-case turnaround time.
 - [x] `[unit]` Checkpoints pause the case at their set points and resume after answering.
-- [ ] `[unit]` Player loads every case in the library with no case-specific code (data-driven test over all case files).
+- [x] `[unit]` Player loads every case in the library with no case-specific code (data-driven test over all case files). (`packages/engine/test/all-cases.test.ts`; `e2e/cases.spec.ts` plays every case in the browser.)
 - [x] `[e2e]` Full reference case completed with **mouse only**.
-- [ ] `[e2e]` Full reference case completed with **hand tracking only** (replayed landmark input).
+- [x] `[e2e]` Full reference case completed with **hand tracking only** (replayed landmark input). (`e2e/cases.spec.ts`, synthetic hand landmarks.)
 - [ ] `[e2e]` Student can move between history, exam and investigations in any order.
 - [x] `[e2e]` Every action (question asked, exam point, test ordered, answer, diagnosis, drug) produces one timestamped log entry.
 - [x] `[e2e]` Captions shown for all patient speech.
@@ -241,11 +241,11 @@ Prototype scope (PRD pilot step 1): one patient, stethoscope exam only.
 - [x] `[e2e]` Allow-retry for one student creates a new attempt for that student only.
 - [x] `[e2e]` Results views per student, per case and per cohort; most-missed items per case are correct against fixture data.
 - [x] `[int]` Excel and PDF exports open correctly and match on-screen numbers.
-- [ ] `[e2e]` Admin CRUD for users/roles, courses, labs and seats.
+- [x] `[e2e]` Admin CRUD for users/roles, courses, labs and seats. (`e2e/staff.spec.ts`; role edits and CSV bulk import in `apps/api/test/users.test.ts`.)
 - [x] `[e2e]` Case library shows versions and publish status; a case cannot be published without validation passing and author sign-off in preview mode.
 - [x] `[e2e]` A published case appears for the course; an unpublished one does not.
 - [x] `[manual]` System health page shows server status, active sessions, storage use and last backup time.
-- [ ] `[int]` Role checks: instructors only see their courses; case authors cannot reach admin functions.
+- [x] `[int]` Role checks: instructors only see their courses; case authors cannot reach admin functions. (`apps/api/test/users.test.ts`, role matrix in `api.test.ts`.)
 
 ---
 
@@ -255,14 +255,14 @@ Prototype scope (PRD pilot step 1): one patient, stethoscope exam only.
 
 **Exit checklist**
 - [ ] `[perf]` Rendering ≥ 60 fps and tracking ≥ 30 fps / ≤ 100 ms with a real case running on lab PCs.
-- [ ] `[perf]` Load test: **2 full labs at once (≥ 60 students, adjust to confirmed lab sizes)** with no errors and acceptable API/WebSocket latency; server sized from results.
+- [x] `[perf]` Load test: **2 full labs at once (≥ 60 students, adjust to confirmed lab sizes)** with no errors and acceptable API/WebSocket latency; server sized from results. (60 students for 3 min: action p95 15.7 ms, nothing lost; 240 students also passed. Server sizing in `docs/load-test.md`. Re-run on the real server.)
 - [x] `[int]` Network drop: disconnect LAN mid-case → actions buffered locally → reconnect → all actions synced in order, no duplicates.
 - [x] `[e2e]` Browser refresh mid-case resumes at the same step with the same timer, vitals and answers.
-- [ ] `[e2e]` Browser crash / tab kill resumes the attempt on relaunch.
+- [x] `[e2e]` Browser crash / tab kill resumes the attempt on relaunch. (`e2e/cases.spec.ts`, including actions made offline before the crash.)
 - [x] `[int]` Runs with no internet access (all assets and libraries served from campus server).
-- [ ] `[manual]` Security review: role-based access, HTTPS only, no answer leakage in payloads, source maps or local storage.
+- [x] `[manual]` Security review: role-based access, HTTPS only, no answer leakage in payloads, source maps or local storage. (Code review done: `docs/security.md`. Server-side items and a penetration test remain for the university.)
 - [ ] `[manual]` Privacy: confirmed no webcam video or images stored or sent; consent notice shown to students before tracking starts.
-- [ ] `[manual]` Accessibility: whole case completable in mouse mode; captions for all speech.
+- [x] `[manual]` Accessibility: whole case completable in mouse mode; captions for all speech. (`e2e/student.spec.ts` mouse-only case; captions tested.)
 - [ ] `[manual]` Backups and retention policy verified with university IT.
 - [ ] `[manual]` Lab check routine run on every seat in the pilot lab(s); all pass.
 

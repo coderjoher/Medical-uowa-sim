@@ -8,6 +8,8 @@ never leaves the lab PC.
 - Product requirements: *Medical Simulation — Stage 1 PRD*
 - Delivery phases and test checklists, with current status: [`docs/stage1-phases.md`](docs/stage1-phases.md)
 - Screenshots: [`docs/screenshots/`](docs/screenshots)
+- Running the lab checks, tracking go/no-go and pilots: [`docs/pilot-runbook.md`](docs/pilot-runbook.md)
+- Security review: [`docs/security.md`](docs/security.md) · University login: [`docs/ldap.md`](docs/ldap.md) · Load test: [`docs/load-test.md`](docs/load-test.md)
 
 ## What is in the repository
 
@@ -19,8 +21,10 @@ never leaves the lab PC.
 | `packages/tracking` | Hand interaction: One Euro smoothing, pinch hysteresis, gesture holds, swipe, calibration, snapping, synthetic hands for tests |
 | `apps/api` | Fastify + PostgreSQL API: auth and roles, courses, labs, versioned cases, sessions, attempts, action sync, scoring, results, Excel/PDF export, live WebSocket. Also serves the two web apps |
 | `apps/sim` | Student app (Vite + Babylon.js + MediaPipe in a Web Worker): calibration, 3D room and patient, history / exam / tests / management / diagnosis, checkpoints, debrief, lab check, author preview |
-| `apps/dashboard` | Staff dashboard (React) at `/staff/`: sessions, live seats, results and exports, case library, users, courses, labs, system health |
-| `content/cases` | Case files. `chest-pain-stemi.json` is a reference case built from the PRD's scoring examples |
+| `apps/dashboard` | Staff dashboard (React) at `/staff/`: sessions, live seats, results and exports, case library, users (with CSV import), courses, labs, seat readiness, score review, pilot report, system health |
+| `content/cases` | Case files. `chest-pain-stemi.json` is a reference case built from the PRD's scoring examples; the other two are drafts awaiting academic review |
+| `content/assets` | Heart/lung sounds, ECGs and X-rays used by cases, served at `/media/`. Generated placeholders (`npx tsx scripts/generate-assets.ts`), to be replaced by licensed material |
+| `tools/loadtest` | Load test that simulates whole labs of students (see `docs/load-test.md`) |
 | `assets/models` | Articraft scripts that generate the 3D models, the USDZ → GLB converter and the checks (outputs are in `apps/sim/public/models`) |
 | `deploy` | Caddy (HTTPS on the LAN) and the daily backup script |
 | `e2e` | Playwright browser tests |
@@ -45,10 +49,16 @@ npm run dev -w @sim/dashboard
 
 Demo accounts (with `SEED_DEMO=1`): `instructor`, `author`, `student1`–`student5` with
 `DEMO_PASSWORD`, and `admin` with `ADMIN_PASSWORD`. The seed creates course MED-401, "Sim Lab 1"
-with 30 seats, the reference case (published), and an open session.
+with 30 seats, every case in `content/cases` (published, reference case first), and an open session.
 
-Useful URLs on the student app: `/?labcheck=1` (2-minute seat check: camera, lighting, tracking
-fps, headphones) and `/?preview=<caseId>:<version>` (author preview, opened from the case library).
+Useful URLs on the student app:
+
+- `/?labcheck=1`: 2-minute seat check (camera, lighting, tracking and 3D frame rate, headphones),
+  saved per seat and shown under **Seat readiness**.
+- `/?trackingtest=1`: hand-tracking test for the go/no-go: timed pinch targets and a rest period,
+  measuring detected and unintended pinches, hand loss and latency. Results go to the
+  **Pilot report**.
+- `/?preview=<caseId>:<version>`: author preview, opened from the case library.
 
 ## Tests
 
@@ -85,6 +95,9 @@ docker compose exec api sh -c 'ADMIN_PASSWORD=... npx tsx apps/api/src/seed.ts'
   success. Run one now with `docker compose exec backup bash /backup.sh now`. Restore with
   `pg_restore --clean -d sim <file>`.
 - Students use `https://<SITE_ADDRESS>/`, staff use `https://<SITE_ADDRESS>/staff/`.
+- University login: set the `LDAP_*` variables in `.env` ([`docs/ldap.md`](docs/ldap.md)). The
+  local `admin` account keeps working as a break-glass login.
+- Students can be bulk-loaded from a CSV roster under **Users → Import CSV**.
 
 ## Adding a case
 
