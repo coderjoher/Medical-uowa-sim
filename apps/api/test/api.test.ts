@@ -189,6 +189,8 @@ describe("student attempts", () => {
     const { sessionId } = await makeSession(w);
     const { attempt } = (await req("POST", `/api/sessions/${sessionId}/attempts`, "alice", { caseId: "chest-pain-stemi" })).json();
     const url = (at: number) => `/api/attempts/${attempt.id}/investigations/troponin?at=${at}`;
+    // Pretend the attempt started 10 minutes ago, so case times up to 10 minutes are plausible.
+    await w.db.query("UPDATE attempts SET started_at = now() - interval '10 minutes' WHERE id = $1", [attempt.id]);
     expect((await req("GET", url(10 * 60_000), "alice")).statusCode).toBe(403);
     await req("POST", `/api/attempts/${attempt.id}/actions`, "alice", { actions: [action("investigation.order", "troponin", 60_000)] });
     expect((await req("GET", url(6 * 60_000), "alice")).statusCode).toBe(409);

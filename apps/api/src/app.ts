@@ -1,4 +1,6 @@
+import fastifyHelmet from "@fastify/helmet";
 import fastifyJwt from "@fastify/jwt";
+import fastifyRateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import fastifyWebsocket from "@fastify/websocket";
 import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
@@ -20,8 +22,14 @@ export interface AppOptions {
   jwtSecret: string;
   authProvider?: AuthProvider;
   logger?: boolean;
+  /** Where logs go (tests); defaults to stdout. */
+  loggerStream?: NodeJS.WritableStream;
   /** File written by the backup job with the time of the last successful backup. */
   backupStatusFile?: string;
+  /** Behind Caddy on the server: take the client address from X-Forwarded-For (for rate limits and logs). */
+  trustProxy?: boolean;
+  /** Login attempts allowed per client address and username per minute. */
+  loginRateLimit?: number;
   /** Built web apps and media to serve, e.g. [{ prefix: "/", root: ".../sim/dist", spa: true }]. */
   staticSites?: { prefix: string; root: string; spa?: boolean }[];
 }
@@ -42,7 +50,19 @@ const cacheHeaders = (hashedBuild: boolean) => (reply: FastifyReply, path: strin
 };
 
 export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
-  const app = Fastify({ logger: opts.logger ?? false, bodyLimit: 5 * 1024 * 1024 });
+  if (opts.jwtSecret.length < 32) throw new Error("JWT_SECRET must be at least 32 characters");
+  const app = Fastify({
+    logger: opts.logger
+      ? {
+          // Never write tokens to the logs (the live WebSocket carries one in its query string).
+          serializers: { req: (r) => ({ method: r.method, url: r.url.replace(/([?&]token=)[^&]*/g, "$1[redacted]"), remoteAddress: r.ip }) },
+          redact: ["req.headers.authorization"],
+          ...(opts.loggerStream ? { stream: opts.loggerStream } : {}),
+        }
+      : false,
+    bodyLimit: 5 * 1024 * 1024,
+    trustProxy: opts.trustProxy ?? false,
+  });
   app.decorate("db", opts.db);
   app.decorate("live", new LiveHub());
   app.decorate("opts", opts);
@@ -50,6 +70,31 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   app.addContentTypeParser("text/csv", { parseAs: "string" }, (_req, body, done) => done(null, body));
   // Spreadsheet uploads arrive as raw bytes.
   app.addContentTypeParser(["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"], { parseAs: "buffer" }, (_req, body, done) => done(null, body));
+
+  await app.register(fastifyHelmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        // MediaPipe compiles its WebAssembly; nothing else needs eval.
+        scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
+        workerSrc: ["'self'", "blob:"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:"],
+        mediaSrc: ["'self'", "blob:"],
+        connectSrc: ["'self'", "ws:", "wss:", "data:", "blob:"],
+        fontSrc: ["'self'", "data:"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        upgradeInsecureRequests: null,
+      },
+    },
+    // The lab PCs fetch the hand model and WebAssembly from this origin only.
+    crossOriginEmbedderPolicy: false,
+  });
+  // Rate limits apply only where a route opts in (login).
+  await app.register(fastifyRateLimit, { global: false });
 
   await app.register(fastifyJwt, { secret: opts.jwtSecret, sign: { expiresIn: "12h" } });
   await app.register(fastifyWebsocket);

@@ -132,7 +132,8 @@ export class HandInput {
     this.video.muted = true;
     this.video.srcObject = this.stream;
     await this.video.play();
-    this.worker = new Worker(new URL("./tracking.worker.ts", import.meta.url), { type: "module" });
+    // Classic (not module) worker: MediaPipe needs importScripts. Vite bundles it as an IIFE.
+    this.worker = new Worker(new URL("./tracking.worker.ts", import.meta.url), { type: "classic" });
     await new Promise<void>((resolve, reject) => {
       this.worker!.onmessage = (e) => {
         if (e.data.type === "ready") resolve();

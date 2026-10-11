@@ -7,6 +7,7 @@ export default defineConfig({
     port: 5173,
     proxy: { "/api": { target: api, ws: true, changeOrigin: true }, "/media": { target: api, changeOrigin: true } },
   },
-  worker: { format: "es" },
+  // Classic worker: MediaPipe loads its WebAssembly glue with importScripts, which module workers lack.
+  worker: { format: "iife" },
   build: { target: "es2022", sourcemap: false, chunkSizeWarningLimit: 6000 },
 });

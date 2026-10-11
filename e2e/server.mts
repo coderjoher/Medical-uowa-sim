@@ -13,6 +13,7 @@ await seedDemo(db, "demo-pass-123");
 const app = await buildApp({
   db,
   jwtSecret: "e2e-secret-0123456789-abcdefghijk",
+  loginRateLimit: 200, // the browser tests sign the same users in many times
   staticSites: [
     { prefix: "/media/", root: fileURLToPath(new URL("../content/assets/", import.meta.url)), spa: false },
     { prefix: "/staff/", root: fileURLToPath(new URL("../apps/dashboard/dist/", import.meta.url)), spa: true },

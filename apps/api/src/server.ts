@@ -20,6 +20,8 @@ const app = await buildApp({
   jwtSecret: env("JWT_SECRET"),
   ...(authProvider ? { authProvider } : {}),
   logger: true,
+  // Caddy terminates HTTPS in front of the API.
+  trustProxy: process.env.TRUST_PROXY !== "0",
   backupStatusFile: process.env.BACKUP_STATUS_FILE ?? "/backups/last-success",
   staticSites: [
     // Case media (finding sounds, ECGs, images): content/assets in the repository by default.

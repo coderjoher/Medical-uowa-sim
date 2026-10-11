@@ -120,6 +120,8 @@ export async function attemptRoutes(app: FastifyInstance) {
     const a = await ownAttempt(req);
     const { testId } = req.params as { testId: string };
     const { at } = z.object({ at: z.coerce.number().int().min(0) }).parse(req.query);
+    // Case time cannot run ahead of the wall clock since the attempt started (pauses only slow it).
+    if (at > Date.now() - new Date(a.started_at).getTime() + 5000) throw badRequest("case time is ahead of the attempt's elapsed time");
     const { definition } = await loadCase(app.db, a.case_id, a.case_version);
     const test = definition.investigations.find((t) => t.id === testId);
     if (!test) throw notFound("investigation");
