@@ -1,0 +1,47 @@
+{
+  "name": "hammer",
+  "source": "assets/models/build/hammer/usdz/0000.usdz",
+  "units": "meters",
+  "upAxis": "Y",
+  "bodies": [
+    "hammer"
+  ],
+  "joints": [],
+  "anchors": {
+    "tip": {
+      "body": "hammer",
+      "position": [
+        0.104,
+        0.038,
+        0.0
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "tip_point": {
+      "body": "hammer",
+      "position": [
+        0.104,
+        -0.03,
+        0.0
+      ],
+      "normal": [
+        0.0,
+        -1.0,
+        0.0
+      ]
+    },
+    "grip": {
+      "body": "hammer",
+      "position": [
+        -0.08,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "triangles": 300
+}

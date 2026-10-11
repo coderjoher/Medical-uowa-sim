@@ -1,0 +1,68 @@
+{
+  "name": "monitor",
+  "source": "assets/models/build/monitor/usdz/0000.usdz",
+  "units": "meters",
+  "upAxis": "Y",
+  "bodies": [
+    "stand",
+    "head",
+    "screen"
+  ],
+  "joints": [
+    {
+      "name": "head_tilt",
+      "parent": "stand",
+      "child": "head",
+      "type": "revolute",
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "limits": [
+        -0.35,
+        0.35
+      ]
+    },
+    {
+      "name": "screen_mount",
+      "parent": "head",
+      "child": "screen",
+      "type": "fixed",
+      "axis": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "limits": [
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "anchors": {
+    "screen_center": {
+      "body": "screen",
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "normal": [
+        0.0,
+        0.0,
+        1.0
+      ]
+    }
+  },
+  "screenSize": [
+    0.3,
+    0.19
+  ],
+  "screenFacing": [
+    0.0,
+    0.0,
+    1.0
+  ],
+  "triangles": 5924
+}

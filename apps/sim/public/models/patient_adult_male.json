@@ -1,0 +1,649 @@
+{
+  "name": "patient_adult_male",
+  "source": "assets/models/build/patient_adult_male/usdz/0000.usdz",
+  "units": "meters",
+  "upAxis": "Y",
+  "bodies": [
+    "pelvis",
+    "abdomen",
+    "thigh_l",
+    "thigh_r",
+    "chest",
+    "shin_l",
+    "shin_r",
+    "neck",
+    "upper_arm_l",
+    "upper_arm_r",
+    "foot_l",
+    "foot_r",
+    "head",
+    "forearm_l",
+    "forearm_r",
+    "eyelid_l",
+    "eyelid_r",
+    "hand_l",
+    "hand_r"
+  ],
+  "joints": [
+    {
+      "name": "spine_lower",
+      "parent": "pelvis",
+      "child": "abdomen",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limits": [
+        0.0,
+        0.9
+      ]
+    },
+    {
+      "name": "hip_l",
+      "parent": "pelvis",
+      "child": "thigh_l",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "limits": [
+        -0.2,
+        2.0
+      ]
+    },
+    {
+      "name": "hip_r",
+      "parent": "pelvis",
+      "child": "thigh_r",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "limits": [
+        -0.2,
+        2.0
+      ]
+    },
+    {
+      "name": "spine_upper",
+      "parent": "abdomen",
+      "child": "chest",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limits": [
+        0.0,
+        0.9
+      ]
+    },
+    {
+      "name": "knee_l",
+      "parent": "thigh_l",
+      "child": "shin_l",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limits": [
+        0.0,
+        2.3
+      ]
+    },
+    {
+      "name": "knee_r",
+      "parent": "thigh_r",
+      "child": "shin_r",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limits": [
+        0.0,
+        2.3
+      ]
+    },
+    {
+      "name": "neck_flex",
+      "parent": "chest",
+      "child": "neck",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limits": [
+        0.0,
+        0.8
+      ]
+    },
+    {
+      "name": "shoulder_l",
+      "parent": "chest",
+      "child": "upper_arm_l",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "limits": [
+        -0.2,
+        2.8
+      ]
+    },
+    {
+      "name": "shoulder_r",
+      "parent": "chest",
+      "child": "upper_arm_r",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "limits": [
+        -0.2,
+        2.8
+      ]
+    },
+    {
+      "name": "ankle_l",
+      "parent": "shin_l",
+      "child": "foot_l",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "limits": [
+        -0.8,
+        0.5
+      ]
+    },
+    {
+      "name": "ankle_r",
+      "parent": "shin_r",
+      "child": "foot_r",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "limits": [
+        -0.8,
+        0.5
+      ]
+    },
+    {
+      "name": "head_turn",
+      "parent": "neck",
+      "child": "head",
+      "type": "revolute",
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "limits": [
+        -1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "elbow_l",
+      "parent": "upper_arm_l",
+      "child": "forearm_l",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "limits": [
+        0.0,
+        2.4
+      ]
+    },
+    {
+      "name": "elbow_r",
+      "parent": "upper_arm_r",
+      "child": "forearm_r",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "limits": [
+        0.0,
+        2.4
+      ]
+    },
+    {
+      "name": "eyelid_l_blink",
+      "parent": "head",
+      "child": "eyelid_l",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limits": [
+        0.0,
+        1.45
+      ]
+    },
+    {
+      "name": "eyelid_r_blink",
+      "parent": "head",
+      "child": "eyelid_r",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limits": [
+        0.0,
+        1.45
+      ]
+    },
+    {
+      "name": "wrist_l",
+      "parent": "forearm_l",
+      "child": "hand_l",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "limits": [
+        -1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "wrist_r",
+      "parent": "forearm_r",
+      "child": "hand_r",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "limits": [
+        -1.0,
+        1.0
+      ]
+    }
+  ],
+  "anchors": {
+    "general_inspection": {
+      "body": "chest",
+      "position": [
+        0.13475,
+        0.1175,
+        0.0
+      ],
+      "normal": [
+        -0.02064,
+        0.999329,
+        -0.030258
+      ]
+    },
+    "pupils": {
+      "body": "head",
+      "position": [
+        0.03925,
+        0.099608,
+        0.0
+      ],
+      "normal": [
+        -0.097495,
+        0.995085,
+        0.017366
+      ]
+    },
+    "pupil_l": {
+      "body": "head",
+      "position": [
+        0.03925,
+        0.097744,
+        0.033
+      ],
+      "normal": [
+        0.133361,
+        0.982054,
+        -0.133361
+      ]
+    },
+    "pupil_r": {
+      "body": "head",
+      "position": [
+        0.03925,
+        0.097744,
+        -0.033
+      ],
+      "normal": [
+        -0.133361,
+        0.982054,
+        0.133361
+      ]
+    },
+    "conjunctiva": {
+      "body": "head",
+      "position": [
+        0.022375,
+        0.090168,
+        -0.033
+      ],
+      "normal": [
+        -0.109001,
+        0.928097,
+        -0.356028
+      ]
+    },
+    "jvp": {
+      "body": "neck",
+      "position": [
+        0.06625,
+        0.0,
+        -0.050844
+      ],
+      "normal": [
+        0.054933,
+        -0.70497,
+        -0.707107
+      ]
+    },
+    "carotid_pulse": {
+      "body": "neck",
+      "position": [
+        0.07625,
+        0.033297,
+        -0.019978
+      ],
+      "normal": [
+        -0.054933,
+        0.70497,
+        -0.707107
+      ]
+    },
+    "radial_pulse": {
+      "body": "forearm_r",
+      "position": [
+        -0.22025,
+        0.011985,
+        0.014985
+      ],
+      "normal": [
+        -0.031199,
+        0.718037,
+        0.695306
+      ]
+    },
+    "blood_pressure": {
+      "body": "upper_arm_r",
+      "position": [
+        -0.149625,
+        0.042392,
+        -0.018
+      ],
+      "normal": [
+        0.04272,
+        0.663371,
+        -0.74707
+      ]
+    },
+    "temperature": {
+      "body": "head",
+      "position": [
+        0.07775,
+        0.094782,
+        0.0
+      ],
+      "normal": [
+        0.290706,
+        0.95541,
+        -0.05178
+      ]
+    },
+    "heart_auscultation": {
+      "body": "chest",
+      "position": [
+        0.09475,
+        0.115311,
+        0.045
+      ],
+      "normal": [
+        -0.02064,
+        0.999329,
+        0.030258
+      ]
+    },
+    "chest_auscultation_front": {
+      "body": "chest",
+      "position": [
+        0.20675,
+        0.110176,
+        -0.07
+      ],
+      "normal": [
+        0.156911,
+        0.982471,
+        -0.100648
+      ]
+    },
+    "chest_auscultation_back": {
+      "body": "chest",
+      "position": [
+        0.13475,
+        -0.107334,
+        -0.075
+      ],
+      "normal": [
+        -0.006306,
+        -0.976593,
+        -0.215004
+      ]
+    },
+    "chest_percussion": {
+      "body": "chest",
+      "position": [
+        0.15075,
+        0.106727,
+        -0.1
+      ],
+      "normal": [
+        0.006306,
+        0.976593,
+        -0.215004
+      ]
+    },
+    "chest_wall_palpation": {
+      "body": "chest",
+      "position": [
+        0.15875,
+        0.116435,
+        0.0
+      ],
+      "normal": [
+        0.044343,
+        0.999016,
+        -0.001223
+      ]
+    },
+    "abdomen_palpation": {
+      "body": "abdomen",
+      "position": [
+        0.08025,
+        0.096881,
+        -0.05
+      ],
+      "normal": [
+        -0.003965,
+        0.998052,
+        -0.062262
+      ]
+    },
+    "abdomen_auscultation": {
+      "body": "abdomen",
+      "position": [
+        0.10025,
+        0.097807,
+        0.03
+      ],
+      "normal": [
+        0.053376,
+        0.997875,
+        0.037363
+      ]
+    },
+    "calf_inspection": {
+      "body": "shin_l",
+      "position": [
+        -0.17475,
+        0.045154,
+        0.0
+      ],
+      "normal": [
+        -0.017607,
+        0.706888,
+        -0.707107
+      ]
+    },
+    "ankle_oedema": {
+      "body": "shin_r",
+      "position": [
+        -0.3495,
+        0.040801,
+        0.0
+      ],
+      "normal": [
+        -0.017607,
+        0.706888,
+        -0.707107
+      ]
+    },
+    "reflexes_knee": {
+      "body": "thigh_r",
+      "position": [
+        -0.34975,
+        0.051911,
+        0.0
+      ],
+      "normal": [
+        -0.043229,
+        0.705784,
+        -0.707107
+      ]
+    },
+    "reflexes_biceps": {
+      "body": "upper_arm_r",
+      "position": [
+        -0.26425,
+        0.041028,
+        -0.018
+      ],
+      "normal": [
+        -0.035629,
+        0.741603,
+        0.669892
+      ]
+    },
+    "capillary_refill": {
+      "body": "hand_r",
+      "position": [
+        -0.153,
+        0.004,
+        -0.011732
+      ],
+      "normal": [
+        -0.085894,
+        0.095278,
+        -0.991738
+      ]
+    }
+  },
+  "poses": {
+    "rest": {},
+    "eyes_closed": {
+      "eyelid_l_blink": 1.35,
+      "eyelid_r_blink": 1.35
+    },
+    "reclined_45": {
+      "spine_lower": 0.45,
+      "spine_upper": 0.34
+    },
+    "head_turned_left": {
+      "head_turn": 0.6
+    },
+    "knees_bent": {
+      "hip_l": 0.7,
+      "hip_r": 0.7,
+      "knee_l": 1.3,
+      "knee_r": 1.3,
+      "ankle_l": 0.5,
+      "ankle_r": 0.5
+    },
+    "arm_r_raised": {
+      "shoulder_r": 1.4
+    }
+  },
+  "description": "Adult male, ~40 years, 1.75 m",
+  "height": 1.75,
+  "facing": [
+    0.0,
+    1.0,
+    0.0
+  ],
+  "headDirection": [
+    1.0,
+    0.0,
+    0.0
+  ],
+  "leftDirection": [
+    0.0,
+    0.0,
+    1.0
+  ],
+  "supportDepth": 0.11,
+  "supportNormal": [
+    0.0,
+    1.0,
+    0.0
+  ],
+  "headRestPoint": [
+    0.7145,
+    -0.05,
+    0.0
+  ],
+  "headLift": 0.06,
+  "breathingBody": "chest",
+  "breathingAxis": [
+    0.0,
+    1.0,
+    0.0
+  ],
+  "breathingAmplitude": 0.04,
+  "triangles": 7622
+}

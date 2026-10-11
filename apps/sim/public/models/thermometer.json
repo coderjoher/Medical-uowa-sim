@@ -1,0 +1,52 @@
+{
+  "name": "thermometer",
+  "source": "assets/models/build/thermometer/usdz/0000.usdz",
+  "units": "meters",
+  "upAxis": "Y",
+  "bodies": [
+    "thermometer"
+  ],
+  "joints": [],
+  "anchors": {
+    "tip": {
+      "body": "thermometer",
+      "position": [
+        0.083,
+        0.0,
+        0.0
+      ],
+      "normal": [
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    "grip": {
+      "body": "thermometer",
+      "position": [
+        -0.035,
+        -0.07,
+        0.0
+      ]
+    },
+    "display": {
+      "body": "thermometer",
+      "position": [
+        -0.0615,
+        0.004,
+        0.0
+      ],
+      "normal": [
+        -1.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "pointing": [
+    1.0,
+    0.0,
+    0.0
+  ],
+  "triangles": 5276
+}

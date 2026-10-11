@@ -14,6 +14,10 @@ const app = await buildApp({
   jwtSecret: env("JWT_SECRET"),
   logger: true,
   backupStatusFile: process.env.BACKUP_STATUS_FILE ?? "/backups/last-success",
+  staticSites: [
+    ...(process.env.DASHBOARD_DIR ? [{ prefix: "/staff/", root: process.env.DASHBOARD_DIR }] : []),
+    ...(process.env.SIM_DIR ? [{ prefix: "/", root: process.env.SIM_DIR }] : []),
+  ],
 });
 if (applied.length) app.log.info({ applied }, "migrations applied");
 await app.listen({ host: env("HOST", "0.0.0.0"), port: Number(env("PORT", "3000")) });

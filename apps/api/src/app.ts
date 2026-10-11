@@ -1,4 +1,5 @@
 import fastifyJwt from "@fastify/jwt";
+import fastifyStatic from "@fastify/static";
 import fastifyWebsocket from "@fastify/websocket";
 import Fastify, { type FastifyInstance } from "fastify";
 import { ZodError } from "zod";
@@ -20,6 +21,8 @@ export interface AppOptions {
   logger?: boolean;
   /** File written by the backup job with the time of the last successful backup. */
   backupStatusFile?: string;
+  /** Built web apps to serve, e.g. [{ prefix: "/", root: ".../sim/dist" }]. */
+  staticSites?: { prefix: string; root: string }[];
 }
 
 declare module "fastify" {
@@ -28,6 +31,13 @@ declare module "fastify" {
     live: LiveHub;
     opts: AppOptions;
   }
+}
+
+/** Hashed build assets and models can be cached for long; index.html must always revalidate. */
+function cacheHeaders(res: { setHeader: (k: string, v: string) => void }, path: string) {
+  if (/\/assets\/.+-[A-Za-z0-9_-]{8}\.[a-z0-9]+$/.test(path)) res.setHeader("cache-control", "public, max-age=31536000, immutable");
+  else if (/\.(glb|task|wasm|mp3|png|jpg)$/.test(path)) res.setHeader("cache-control", "public, max-age=86400");
+  else res.setHeader("cache-control", "no-cache");
 }
 
 export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
@@ -59,5 +69,19 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   await app.register(sessionRoutes);
   await app.register(attemptRoutes);
   await app.register(liveRoutes);
+
+  // Serve the built student app and dashboard from the same origin (one server on the LAN).
+  for (const [i, site] of (opts.staticSites ?? []).entries()) {
+    await app.register(fastifyStatic, { root: site.root, prefix: site.prefix, decorateReply: i === 0, wildcard: true, cacheControl: false, setHeaders: cacheHeaders });
+  }
+  if (opts.staticSites?.length) {
+    // Single-page apps: unknown non-API paths fall back to the site's index.html.
+    app.setNotFoundHandler((req, reply) => {
+      if (req.url.startsWith("/api/")) return reply.code(404).send({ error: "not found" });
+      const site = [...opts.staticSites!].sort((a, b) => b.prefix.length - a.prefix.length).find((s) => req.url.startsWith(s.prefix));
+      if (!site) return reply.code(404).send({ error: "not found" });
+      return reply.sendFile("index.html", site.root);
+    });
+  }
   return app;
 }

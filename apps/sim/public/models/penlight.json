@@ -1,0 +1,39 @@
+{
+  "name": "penlight",
+  "source": "assets/models/build/penlight/usdz/0000.usdz",
+  "units": "meters",
+  "upAxis": "Y",
+  "bodies": [
+    "penlight"
+  ],
+  "joints": [],
+  "anchors": {
+    "tip": {
+      "body": "penlight",
+      "position": [
+        0.079,
+        0.0,
+        0.0
+      ],
+      "normal": [
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    "grip": {
+      "body": "penlight",
+      "position": [
+        -0.02,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "pointing": [
+    1.0,
+    0.0,
+    0.0
+  ],
+  "triangles": 344
+}

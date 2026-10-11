@@ -344,6 +344,7 @@ def finalize(
     meta: AssetMeta,
     *,
     extra_checks: Callable[[TestContext], None] | None = None,
+    allowances: Callable[[TestContext], None] | None = None,
     allow_joint_overlaps: bool = False,
     overlap_reason: str = "articulated neighbours share a soft joint volume",
     preview_views: Sequence[tuple[str, ModelView]] | None = None,
@@ -367,6 +368,9 @@ def finalize(
                     if ctx.distance_between(a.name, b.name, shape_a=sa, shape_b=sb).collided:
                         ctx.allow_overlap(a.name, b.name, shape_a=sa, shape_b=sb, reason=overlap_reason)
 
+    if allowances is not None:
+        allowances(ctx)
+
     ctx.fail_if_isolated_parts(contact_tol=1e-4)
     ctx.warn_if_part_contains_disconnected_geometry_islands(contact_tol=1e-4)
     ctx.warn_if_absurd_dimensions()
@@ -383,7 +387,7 @@ def finalize(
 
     report = ctx.report()
     for w in report.warnings:
-        print(f"[{name}] warning: {w[:400]}")
+        print(f"[{name}] warning: {w[:1500]}")
     if not report.passed:
         for f in report.failures:
             print(f"[{name}] FAIL {f.name}: {f.details[:2000]}", file=sys.stderr)

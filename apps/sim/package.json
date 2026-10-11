@@ -1,0 +1,23 @@
+{
+  "name": "@sim/sim",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "fetch-mediapipe": "node scripts/fetch-mediapipe.mjs"
+  },
+  "dependencies": {
+    "@babylonjs/core": "^9.30.0",
+    "@babylonjs/loaders": "^9.30.0",
+    "@mediapipe/tasks-vision": "^1.1.0",
+    "@sim/engine": "0.1.0",
+    "@sim/shared": "0.1.0",
+    "@sim/tracking": "0.1.0"
+  },
+  "devDependencies": {
+    "vite": "^7.3.7"
+  }
+}

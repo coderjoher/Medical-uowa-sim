@@ -1,0 +1,79 @@
+{
+  "name": "bed",
+  "source": "assets/models/build/bed/usdz/0000.usdz",
+  "units": "meters",
+  "upAxis": "Y",
+  "bodies": [
+    "frame",
+    "backrest"
+  ],
+  "joints": [
+    {
+      "name": "backrest_hinge",
+      "parent": "frame",
+      "child": "backrest",
+      "type": "revolute",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "limits": [
+        0.0,
+        1.1
+      ]
+    }
+  ],
+  "anchors": {
+    "patient_hip": {
+      "body": "frame",
+      "position": [
+        0.0,
+        0.7,
+        0.0
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "patient_head": {
+      "body": "backrest",
+      "position": [
+        0.595,
+        0.18,
+        0.0
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    }
+  },
+  "poses": {
+    "flat": {
+      "backrest_hinge": 0.0
+    },
+    "reclined_45": {
+      "backrest_hinge": 0.7853981633974483
+    },
+    "sitting": {
+      "backrest_hinge": 1.1
+    }
+  },
+  "mattressTopHeight": 0.7,
+  "pillowTopHeight": 0.76,
+  "size": [
+    2.0,
+    0.9,
+    0.7
+  ],
+  "headDirection": [
+    1.0,
+    0.0,
+    0.0
+  ],
+  "triangles": 9552
+}

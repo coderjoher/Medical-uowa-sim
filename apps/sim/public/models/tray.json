@@ -1,0 +1,92 @@
+{
+  "name": "tray",
+  "source": "assets/models/build/tray/usdz/0000.usdz",
+  "units": "meters",
+  "upAxis": "Y",
+  "bodies": [
+    "trolley"
+  ],
+  "joints": [],
+  "anchors": {
+    "slot_stethoscope": {
+      "body": "trolley",
+      "position": [
+        -0.15,
+        0.904,
+        -0.085
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "slot_bp_cuff": {
+      "body": "trolley",
+      "position": [
+        -0.15,
+        0.904,
+        0.105
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "slot_penlight": {
+      "body": "trolley",
+      "position": [
+        0.145,
+        0.904,
+        -0.135
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "slot_hammer": {
+      "body": "trolley",
+      "position": [
+        0.145,
+        0.904,
+        -0.035
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "slot_thermometer": {
+      "body": "trolley",
+      "position": [
+        0.145,
+        0.904,
+        0.105
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "handle": {
+      "body": "trolley",
+      "position": [
+        -0.36,
+        0.96,
+        0.0
+      ]
+    }
+  },
+  "trayTopHeight": 0.904,
+  "size": [
+    0.6,
+    0.42,
+    0.9
+  ],
+  "triangles": 2772
+}

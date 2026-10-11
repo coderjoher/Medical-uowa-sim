@@ -1,0 +1,109 @@
+{
+  "name": "room",
+  "source": "assets/models/build/room/usdz/0000.usdz",
+  "units": "meters",
+  "upAxis": "Y",
+  "bodies": [
+    "room"
+  ],
+  "joints": [],
+  "anchors": {
+    "bed_spot": {
+      "body": "room",
+      "position": [
+        0.3,
+        0.0,
+        -0.6
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "monitor_spot": {
+      "body": "room",
+      "position": [
+        1.65,
+        0.0,
+        -1.35
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "tray_spot": {
+      "body": "room",
+      "position": [
+        -0.95,
+        0.0,
+        0.25
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "doctor_spot": {
+      "body": "room",
+      "position": [
+        0.3,
+        0.0,
+        0.35
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "chair_spot": {
+      "body": "room",
+      "position": [
+        -1.75,
+        0.0,
+        -0.8
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "desk_top": {
+      "body": "room",
+      "position": [
+        -1.65,
+        0.75,
+        -1.55
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "camera_hint": {
+      "body": "room",
+      "position": [
+        0.3,
+        1.65,
+        2.6
+      ]
+    }
+  },
+  "floorSize": [
+    5.0,
+    4.0
+  ],
+  "wallHeight": 2.8,
+  "openSide": [
+    0.0,
+    0.0,
+    1.0
+  ],
+  "triangles": 620
+}

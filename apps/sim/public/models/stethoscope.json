@@ -1,0 +1,50 @@
+{
+  "name": "stethoscope",
+  "source": "assets/models/build/stethoscope/usdz/0000.usdz",
+  "units": "meters",
+  "upAxis": "Y",
+  "bodies": [
+    "stethoscope"
+  ],
+  "joints": [],
+  "anchors": {
+    "tip": {
+      "body": "stethoscope",
+      "position": [
+        0.0,
+        -0.0075,
+        0.0
+      ],
+      "normal": [
+        0.0,
+        -1.0,
+        0.0
+      ]
+    },
+    "grip": {
+      "body": "stethoscope",
+      "position": [
+        0.0,
+        0.016,
+        0.0
+      ]
+    },
+    "earpiece_l": {
+      "body": "stethoscope",
+      "position": [
+        0.66,
+        0.03,
+        -0.028
+      ]
+    },
+    "earpiece_r": {
+      "body": "stethoscope",
+      "position": [
+        0.66,
+        0.03,
+        0.028
+      ]
+    }
+  },
+  "triangles": 2384
+}

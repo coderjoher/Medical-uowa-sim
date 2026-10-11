@@ -1,0 +1,61 @@
+{
+  "name": "bp_cuff",
+  "source": "assets/models/build/bp_cuff/usdz/0000.usdz",
+  "units": "meters",
+  "upAxis": "Y",
+  "bodies": [
+    "bp_cuff"
+  ],
+  "joints": [],
+  "anchors": {
+    "tip": {
+      "body": "bp_cuff",
+      "position": [
+        0.0,
+        -0.052,
+        0.0
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "center": {
+      "body": "bp_cuff",
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "bulb": {
+      "body": "bp_cuff",
+      "position": [
+        -0.06,
+        -0.13,
+        0.26
+      ]
+    },
+    "gauge": {
+      "body": "bp_cuff",
+      "position": [
+        0.03,
+        -0.047,
+        0.2
+      ],
+      "normal": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    }
+  },
+  "cuffAxis": [
+    1.0,
+    0.0,
+    0.0
+  ],
+  "cuffInnerRadius": 0.052,
+  "triangles": 1552
+}
