@@ -16,7 +16,9 @@
     "dev:api": "npm run dev -w @sim/api",
     "dev:sim": "npm run dev -w @sim/sim",
     "test:e2e": "playwright test",
-    "build": "npm run fetch-mediapipe -w @sim/sim && npm run build -w @sim/sim && npm run build -w @sim/dashboard"
+    "build": "npm run fetch-mediapipe -w @sim/sim && npm run build -w @sim/sim && npm run build -w @sim/dashboard",
+    "case-templates": "tsx packages/case-sheet/scripts/make-templates.ts",
+    "import-case": "tsx packages/case-sheet/scripts/import-case.ts"
   },
   "engines": {
     "node": ">=22"

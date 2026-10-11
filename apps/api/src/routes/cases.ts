@@ -1,3 +1,4 @@
+import { caseToWorkbook, formatIssue, importCaseWorkbook, workbookBuffer } from "@sim/case-sheet";
 import { scoreAttempt } from "@sim/engine";
 import { ActionLogEntry, toStudentCase, validateCase, type CaseDefinition } from "@sim/shared";
 import type { FastifyInstance } from "fastify";
@@ -8,6 +9,7 @@ import { badRequest, conflict } from "../http-errors.js";
 import { loadCase, scoreAndStore } from "../scoring-service.js";
 
 type Params = { id: string; version: string };
+const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const ver = (p: Params) => {
   const v = Number(p.version);
   if (!Number.isInteger(v) || v < 1) throw badRequest("version must be a positive integer");
@@ -32,12 +34,9 @@ const contentOf = (c: CaseDefinition) => stableJson({ view: toStudentCase(c), re
 export async function caseRoutes(app: FastifyInstance) {
   const authors = { preHandler: requireRole("admin", "case_author") };
 
-  // Import: validation script + new immutable version.
-  app.post("/api/admin/cases", authors, async (req, reply) => {
-    const v = validateCase(req.body);
-    if (!v.ok) throw badRequest("case failed validation", v.issues);
-    const c = v.case;
-    const saved = await tx(app.db, async (q) => {
+  /** Stores a validated case as a new immutable draft version. */
+  const storeNewVersion = (c: CaseDefinition, userId: string) =>
+    tx(app.db, async (q) => {
       await q.query("SELECT pg_advisory_xact_lock(hashtext($1))", [c.metadata.id]);
       const { rows } = await q.query("SELECT coalesce(max(version), 0) + 1 AS next FROM case_versions WHERE case_id = $1", [c.metadata.id]);
       const version = rows[0].next as number;
@@ -48,11 +47,42 @@ export async function caseRoutes(app: FastifyInstance) {
         c.metadata.title,
         c.metadata.course,
         def,
-        req.user.id,
+        userId,
       ]);
       return { caseId: c.metadata.id, version, status: "draft" };
     });
-    return reply.code(201).send(saved);
+
+  // Import a case JSON: validation + new immutable version.
+  app.post("/api/admin/cases", authors, async (req, reply) => {
+    const v = validateCase(req.body);
+    if (!v.ok) throw badRequest("case failed validation", v.issues);
+    return reply.code(201).send(await storeNewVersion(v.case, req.user.id));
+  });
+
+  // Import the academics' filled spreadsheet template (raw .xlsx body).
+  app.post("/api/admin/cases/xlsx", authors, async (req, reply) => {
+    if (!Buffer.isBuffer(req.body) || !req.body.length) throw badRequest("send the .xlsx file as the request body");
+    const r = await importCaseWorkbook(req.body);
+    if (!r.ok) throw badRequest("case template has problems", r.issues.map((i) => ({ path: formatIssue({ ...i, message: "" }).replace(/: $/, ""), message: i.message })));
+    return reply.code(201).send(await storeNewVersion(r.case, req.user.id));
+  });
+
+  // Blank template (always in sync with the shared drug, test and exam-point lists).
+  app.get("/api/admin/case-template.xlsx", authors, async (_req, reply) =>
+    reply
+      .header("content-type", XLSX)
+      .header("content-disposition", 'attachment; filename="case-template.xlsx"')
+      .send(await workbookBuffer(caseToWorkbook())),
+  );
+
+  // An existing version as a filled template, to start a revision from.
+  app.get("/api/admin/cases/:id/:version/xlsx", authors, async (req, reply) => {
+    const p = req.params as Params;
+    const { definition } = await loadCase(app.db, p.id, ver(p));
+    return reply
+      .header("content-type", XLSX)
+      .header("content-disposition", `attachment; filename="${p.id}-v${ver(p)}.xlsx"`)
+      .send(await workbookBuffer(caseToWorkbook(definition)));
   });
 
   app.get("/api/admin/cases", { preHandler: requireRole("admin", "case_author", "instructor") }, async () => {

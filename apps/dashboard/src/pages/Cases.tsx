@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api, errorText, token, type Me } from "../api.js";
+import { api, ApiError, download, errorText, token, type Me } from "../api.js";
 import { useGet } from "../hooks.js";
 
 interface CaseRow {
@@ -18,18 +18,34 @@ interface CaseRow {
  */
 export function CasesPage({ me }: { me: Me }) {
   const [cases, error, reload] = useGet<CaseRow[]>("/api/admin/cases");
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string; list?: string[] } | null>(null);
   const canAuthor = me.role === "admin" || me.role === "case_author";
 
   const importFile = async (f: File) => {
     setMsg(null);
     try {
-      const json = JSON.parse(await f.text());
-      const r = await api<{ caseId: string; version: number }>("POST", "/api/admin/cases", json);
+      let r: { caseId: string; version: number };
+      const bytes = await f.arrayBuffer();
+      // .xlsx files are zip archives ("PK"); anything else is treated as case JSON.
+      const isXlsx = new Uint8Array(bytes.slice(0, 2)).every((b, i) => b === [0x50, 0x4b][i]);
+      if (isXlsx) {
+        // The filled spreadsheet template goes up as raw bytes.
+        const res = await fetch("/api/admin/cases/xlsx", {
+          method: "POST",
+          headers: { "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", authorization: `Bearer ${token.get()}` },
+          body: bytes,
+        });
+        const json = await res.json();
+        if (!res.ok) throw new ApiError(res.status, json.error, json.details);
+        r = json;
+      } else {
+        r = await api("POST", "/api/admin/cases", JSON.parse(new TextDecoder().decode(bytes)));
+      }
       setMsg({ ok: true, text: `Imported ${r.caseId} as version ${r.version} (draft). Preview it, then sign it off.` });
       reload();
     } catch (e) {
-      setMsg({ ok: false, text: e instanceof SyntaxError ? `Not valid JSON: ${e.message}` : errorText(e) });
+      if (e instanceof ApiError && e.details?.length) setMsg({ ok: false, text: `${e.message} (${e.details.length}):`, list: e.details.map((d) => `${d.path || "case"} — ${d.message}`) });
+      else setMsg({ ok: false, text: e instanceof SyntaxError ? `Not valid JSON: ${e.message}` : errorText(e) });
     }
   };
 
@@ -48,9 +64,35 @@ export function CasesPage({ me }: { me: Me }) {
       {canAuthor && (
         <section className="card">
           <h2>Import a case</h2>
-          <p className="muted">Choose a case JSON file. It is checked against the case schema and the shared drug, test and exam-point lists before it is stored as a new draft version.</p>
-          <input type="file" accept="application/json,.json" aria-label="Case file" onChange={(e) => e.target.files?.[0] && importFile(e.target.files[0])} />
-          {msg && <p className={msg.ok ? "note" : "error"}>{msg.text}</p>}
+          <p className="muted">
+            Academics fill in the case template (one tab per part of the case). Upload the filled .xlsx — or a case .json — and it is checked against the case rules and the shared drug, test and
+            exam-point lists before it is stored as a new draft version. Problems are listed by tab, row and column.
+          </p>
+          <div className="row">
+            <button onClick={() => download("/api/admin/case-template.xlsx", "case-template.xlsx").catch((e) => setMsg({ ok: false, text: errorText(e) }))}>Download blank template</button>
+            <input
+              type="file"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/json,.json"
+              aria-label="Case file"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) void importFile(f);
+              }}
+            />
+          </div>
+          {msg && (
+            <div className={msg.ok ? "note" : "error"} role={msg.ok ? "status" : "alert"}>
+              <p>{msg.text}</p>
+              {msg.list && (
+                <ul className="issues">
+                  {msg.list.map((x) => (
+                    <li key={x}>{x}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </section>
       )}
       <section className="card">
@@ -85,6 +127,11 @@ export function CasesPage({ me }: { me: Me }) {
                     <a className="button" href={`/?preview=${encodeURIComponent(`${c.caseId}:${c.version}`)}#token=${encodeURIComponent(token.get() ?? "")}`} target="_blank" rel="noreferrer">
                       Preview
                     </a>
+                  )}
+                  {canAuthor && (
+                    <button onClick={() => download(`/api/admin/cases/${c.caseId}/${c.version}/xlsx`, `${c.caseId}-v${c.version}.xlsx`).catch((e) => setMsg({ ok: false, text: errorText(e) }))}>
+                      Spreadsheet
+                    </button>
                   )}
                   {canAuthor && c.status === "draft" && <button onClick={() => act(c, "signoff")}>Sign off</button>}
                   {me.role === "admin" && c.status === "signed_off" && (

@@ -1,0 +1,12 @@
+{
+  "name": "@sim/case-sheet",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@sim/shared": "0.1.0",
+    "exceljs": "^4.4.0"
+  }
+}

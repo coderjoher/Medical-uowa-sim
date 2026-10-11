@@ -46,6 +46,9 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   app.decorate("live", new LiveHub());
   app.decorate("opts", opts);
 
+  // Spreadsheet uploads arrive as raw bytes.
+  app.addContentTypeParser(["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"], { parseAs: "buffer" }, (_req, body, done) => done(null, body));
+
   await app.register(fastifyJwt, { secret: opts.jwtSecret, sign: { expiresIn: "12h" } });
   await app.register(fastifyWebsocket);
 

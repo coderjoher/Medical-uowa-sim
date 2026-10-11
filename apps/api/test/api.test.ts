@@ -96,6 +96,33 @@ describe("case import and publishing", () => {
     expect(r.statusCode).toBe(400);
   });
 
+  it("imports the academics' spreadsheet template and reports problems by tab and row", async () => {
+    const { caseToWorkbook, workbookBuffer } = await import("@sim/case-sheet");
+    const template = await req("GET", "/api/admin/case-template.xlsx", "author");
+    expect(template.statusCode).toBe(200);
+    expect(template.headers["content-type"]).toContain("spreadsheetml");
+    expect((await req("GET", "/api/admin/case-template.xlsx", "alice")).statusCode).toBe(403);
+
+    const c = refCase();
+    c.metadata.id = "from-spreadsheet";
+    const { validateCase } = await import("@sim/shared");
+    const v = validateCase(c);
+    if (!v.ok) throw new Error("invalid");
+    const upload = (buf: Buffer) =>
+      w.app.inject({ method: "POST", url: "/api/admin/cases/xlsx", headers: { ...w.as("author"), "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }, payload: buf });
+    const ok = await upload(await workbookBuffer(caseToWorkbook(v.case)));
+    expect(ok.statusCode).toBe(201);
+    expect(ok.json()).toMatchObject({ caseId: "from-spreadsheet", version: 1, status: "draft" });
+
+    // Download it back as a filled template.
+    const back = await req("GET", "/api/admin/cases/from-spreadsheet/1/xlsx", "author");
+    expect(back.statusCode).toBe(200);
+
+    const blank = await upload(await workbookBuffer(caseToWorkbook()));
+    expect(blank.statusCode).toBe(400);
+    expect(blank.json().details).toContainEqual({ path: "Metadata row 3 · Case id", message: "required" });
+  });
+
   it("preview mode scores an author's play-through without storing it", async () => {
     const r = await req("POST", "/api/admin/cases/chest-pain-stemi/1/preview-score", "author", { actions: [action("investigation.order", "ecg", 1000)] });
     expect(r.statusCode).toBe(200);

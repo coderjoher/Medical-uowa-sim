@@ -53,11 +53,28 @@ test("case author imports, previews and signs off; admin publishes", async ({ pa
   await staffLogin(page, "author");
   await page.getByRole("link", { name: "Case library" }).click();
 
+  // The blank template downloads, and uploading it unfilled lists what is missing by tab and row.
+  const [tpl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download blank template" }).click()]);
+  expect(tpl.suggestedFilename()).toBe("case-template.xlsx");
+  await page.getByLabel("Case file").setInputFiles((await tpl.path())!);
+  await expect(page.locator(".issues")).toContainText("Metadata row 3 · Case id — required");
+
+  // A filled spreadsheet imports as a draft.
+  const { caseToWorkbook, workbookBuffer } = await import("@sim/case-sheet");
+  const { validateCase } = await import("@sim/shared");
+  const sheetCase = structuredClone(c);
+  sheetCase.metadata.id = "chest-pain-sheet";
+  sheetCase.metadata.title = "Chest pain (from spreadsheet)";
+  const v = validateCase(sheetCase);
+  if (!v.ok) throw new Error("invalid");
+  await page.getByLabel("Case file").setInputFiles({ name: "filled.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: await workbookBuffer(caseToWorkbook(v.case)) });
+  await expect(page.locator(".note")).toContainText("Imported chest-pain-sheet as version 1");
+
   // A broken case shows its validation problems.
   const bad = structuredClone(c);
   bad.management.actions[0].id = "unobtainium";
   await page.getByLabel("Case file").setInputFiles({ name: "bad.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(bad)) });
-  await expect(page.locator(".error")).toContainText('unknown drug or action "unobtainium"');
+  await expect(page.locator(".issues")).toContainText('unknown drug or action "unobtainium"');
 
   await page.getByLabel("Case file").setInputFiles({ name: "case.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(c)) });
   await expect(page.locator(".note")).toContainText("Imported chest-pain-copy as version 1");

@@ -15,7 +15,7 @@ dependency order.
 
 ## Build status (updated Oct 11, 2026)
 
-Ticked items below are proven by automated tests in this repository (`npm test`: 117 unit and
+Ticked items below are proven by automated tests in this repository (`npm test`: 127 unit and
 API tests; `npm run test:e2e`: 6 browser tests). Unticked items still need doing: most need the
 real lab, real users or a sign-off, and some are partly built (see notes).
 
@@ -23,7 +23,7 @@ real lab, real users or a sign-off, and some are partly built (see notes).
 |---|---|---|
 | 0 Foundations | Monorepo, TypeScript, lint, tests, CI workflow, Docker Compose (API + PostgreSQL + Caddy HTTPS + daily backups), production install and serving checked locally | `docker compose up` on the real server (Docker was not available in the build environment), lab PC benchmark, open questions |
 | 1 Hand tracking | MediaPipe in a Web Worker, One Euro smoothing, pinch hysteresis, hold timing, open-palm menu, swipe, confidence gating, hand-lost handling, calibration, snapping, cursor, camera preview, lighting warning, lab check page | Everything in the real lab (fps, latency, pinch accuracy, go/no-go); replay tests use synthetic landmarks, not recorded sessions |
-| 2 Case model | Schema, shared libraries, validator + CLI, reference case, versioned import in the dashboard | Spreadsheet template and spreadsheet → JSON import; finding sounds, ECG and X-ray images; academics' cases |
+| 2 Case model | Schema, shared libraries, validator + CLI, reference case, spreadsheet template (one tab per case part, dropdowns from the shared lists) with import that reports problems by tab/row/column, versioned import in the dashboard, authoring guide | Finding sounds, ECG and X-ray images; academics' cases and template sign-off |
 | 3 Backend | Auth (local accounts; LDAP/SSO slot), roles, courses, labs, seats, sessions, attempts, idempotent action log, answer-free student payload, results release, live WebSocket, backup + restore script | University directory login; HTTPS on the real LAN |
 | 4 Room and player | Articraft models (room, bed, monitor, trolley, tools, 4 patients), breathing/blinking/pain animation, live monitor, all case steps, checkpoints, deterioration, captions + speech, refresh resume | Hand-only full-case replay test; frame-rate and load-time measurement on lab PCs; sound/image assets |
 | 5 Scoring | Rubric engine, weighting, critical errors, re-scoring, debrief | Academic review of sample attempts |
@@ -129,7 +129,7 @@ Prototype scope (PRD pilot step 1): one patient, stethoscope exam only.
 - [x] `[unit]` Schema validates the reference case and rejects each required field when removed.
 - [x] `[unit]` Validator flags: missing fields, unknown drugs, unknown tests, unknown exam points, broken references (e.g. a question or rubric item pointing to a non-existent action).
 - [x] `[unit]` Validator rejects invalid values: negative turnaround, vitals out of physiological range, weighting not summing to 100%, no correct diagnosis.
-- [ ] `[int]` Spreadsheet template → import script → JSON round-trips the reference case with no data loss.
+- [x] `[int]` Spreadsheet template → import script → JSON round-trips the reference case with no data loss. (Also after re-saving in LibreOffice.)
 - [x] `[int]` Importing a changed case creates a **new version number**; older versions stay readable.
 - [ ] `[int]` Case JSON stored in the case/asset store; assets (sounds, images, ECGs) referenced by ID resolve.
 - [ ] `[manual]` An academic fills the template for a second case with no developer help beyond the guide.

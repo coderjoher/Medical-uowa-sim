@@ -15,6 +15,7 @@ never leaves the lab PC.
 |---|---|
 | `packages/shared` | Case JSON schema, shared drug / test / exam-point libraries, case validator, answer-free student view, action log types |
 | `packages/engine` | Vital-signs timeline and deterioration, checkpoints, investigation turnaround, case clock, rubric scoring |
+| `packages/case-sheet` | Spreadsheet case template (writer) and importer with tab/row/column error messages |
 | `packages/tracking` | Hand interaction: One Euro smoothing, pinch hysteresis, gesture holds, swipe, calibration, snapping, synthetic hands for tests |
 | `apps/api` | Fastify + PostgreSQL API: auth and roles, courses, labs, versioned cases, sessions, attempts, action sync, scoring, results, Excel/PDF export, live WebSocket. Also serves the two web apps |
 | `apps/sim` | Student app (Vite + Babylon.js + MediaPipe in a Web Worker): calibration, 3D room and patient, history / exam / tests / management / diagnosis, checkpoints, debrief, lab check, author preview |
@@ -87,10 +88,15 @@ docker compose exec api sh -c 'ADMIN_PASSWORD=... npx tsx apps/api/src/seed.ts'
 
 ## Adding a case
 
-1. Write the case as JSON following `packages/shared/src/case-schema.ts` (the reference case is a
-   complete example). Drugs, tests and exam points must exist in `packages/shared/src/libraries`.
-2. `npm run validate-cases` or import it in the dashboard's case library: problems are listed by
-   field.
+Academics write cases in the spreadsheet template — see the
+[case authoring guide](docs/case-authoring-guide.md).
+
+1. Get the template from **Case library → Download blank template** (or
+   `content/templates/case-template.xlsx`; a filled example sits next to it). Run
+   `npm run case-templates` to regenerate both after changing the shared lists.
+2. Upload the filled .xlsx in the case library, or check it on the command line with
+   `npm run import-case -- case.xlsx` (writes `content/cases/<id>.json`). Problems are listed by
+   tab, row and column. Case JSON files can be imported directly too.
 3. The author opens **Preview**, plays it, then clicks **Sign off**; an admin clicks **Publish**.
 4. To fix only the scoring of a live version, post the corrected case to
    `/api/admin/cases/<id>/<version>/rubric`; stored attempts are re-scored from their action logs.

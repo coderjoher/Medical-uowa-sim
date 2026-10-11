@@ -7,6 +7,7 @@ COPY package.json package-lock.json ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/tracking/package.json packages/tracking/
 COPY packages/engine/package.json packages/engine/
+COPY packages/case-sheet/package.json packages/case-sheet/
 COPY apps/api/package.json apps/api/
 COPY apps/sim/package.json apps/sim/
 COPY apps/dashboard/package.json apps/dashboard/
@@ -22,6 +23,7 @@ COPY package.json package-lock.json ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/tracking/package.json packages/tracking/
 COPY packages/engine/package.json packages/engine/
+COPY packages/case-sheet/package.json packages/case-sheet/
 COPY apps/api/package.json apps/api/
 COPY apps/sim/package.json apps/sim/
 COPY apps/dashboard/package.json apps/dashboard/
