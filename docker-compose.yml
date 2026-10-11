@@ -25,6 +25,8 @@ services:
       DATABASE_URL: postgres://sim:${POSTGRES_PASSWORD}@db:5432/sim
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
       BACKUP_STATUS_FILE: /backups/last-success
+      # Password hashing threads; raise to the core count on larger servers (docs/load-test.md).
+      UV_THREADPOOL_SIZE: ${UV_THREADPOOL_SIZE:-4}
       # University sign-in (optional; see docs/ldap.md). Leave LDAP_URL empty for local accounts only.
       LDAP_URL: ${LDAP_URL:-}
       LDAP_BIND_DN: ${LDAP_BIND_DN:-}

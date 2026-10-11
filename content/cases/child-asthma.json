@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "metadata": {
+    "id": "child-asthma",
+    "version": 1,
+    "title": "DRAFT: Breathless 9-year-old girl",
+    "course": "MED-401 Clinical Reasoning",
+    "specialty": "Paediatrics",
+    "difficulty": "medium",
+    "learningObjectives": [
+      "Recognise acute severe asthma in a child from history and examination",
+      "Start bronchodilator, oxygen and steroid treatment promptly",
+      "Avoid unnecessary investigations and antibiotics"
+    ],
+    "timeLimitMin": 15,
+    "authors": ["DRAFT by dev team for software testing - requires academic authoring and review before use"]
+  },
+  "patient": {
+    "model": "child",
+    "name": "Sara Ahmed",
+    "age": 9,
+    "sex": "female",
+    "chiefComplaint": "Wheeze and breathlessness since this morning",
+    "handover": "9-year-old girl with asthma, worsening wheeze and breathlessness since this morning. Her inhaler is not helping. Mother is with her.",
+    "appearance": ["breathing", "blinking", "coughing"]
+  },
+  "history": [
+    { "id": "pc_onset", "topic": "presenting_complaint", "text": "When did this start?", "answer": "This morning. It got worse at school after PE.", "relevance": "essential", "points": 2 },
+    { "id": "pc_inhaler", "topic": "presenting_complaint", "text": "How much reliever inhaler has she used today?", "answer": "Ten puffs of the blue inhaler in the last two hours, it only helps for a few minutes.", "relevance": "essential", "points": 3, "feedback": "Escalating reliever use with little effect is a sign of a severe attack." },
+    { "id": "pc_speech", "topic": "presenting_complaint", "text": "Can she talk in full sentences?", "answer": "Only a few words at a time.", "relevance": "essential", "points": 2 },
+    { "id": "pc_fever", "topic": "presenting_complaint", "text": "Any fever?", "answer": "No, she has not been hot.", "relevance": "useful", "points": 1 },
+    { "id": "ph_admissions", "topic": "past_history", "text": "Has she ever been admitted to hospital or intensive care for asthma?", "answer": "Admitted once last winter, never to intensive care.", "relevance": "essential", "points": 3, "feedback": "Previous admissions, and especially intensive care, increase the risk of a life-threatening attack." },
+    { "id": "dh_preventer", "topic": "drugs", "text": "Does she take a preventer inhaler every day?", "answer": "The brown one, but she often forgets it.", "relevance": "useful", "points": 1 },
+    { "id": "al_allergies", "topic": "allergies", "text": "Any allergies?", "answer": "No drug allergies. She is allergic to cats.", "relevance": "essential", "points": 2 },
+    { "id": "sh_smoke", "topic": "social", "text": "Does anyone smoke at home?", "answer": "Her father smokes outside.", "relevance": "useful", "points": 1 },
+    { "id": "sh_school", "topic": "social", "text": "Which school year is she in?", "answer": "Year 5.", "relevance": "irrelevant" },
+    { "id": "fh_atopy", "topic": "family", "text": "Does anyone in the family have asthma or eczema?", "answer": "Her brother has eczema.", "relevance": "useful", "points": 1 }
+  ],
+  "examination": [
+    { "id": "general_inspection", "finding": { "text": "Sitting upright, using accessory muscles, can say only a few words." }, "relevant": true, "points": 2 },
+    { "id": "chest_auscultation_front", "finding": { "text": "Widespread expiratory wheeze, reduced air entry.", "sound": "sounds/lung-wheeze.wav" }, "relevant": true, "points": 3 },
+    { "id": "chest_auscultation_back", "finding": { "text": "Widespread wheeze at both bases.", "sound": "sounds/lung-wheeze.wav" }, "relevant": true, "points": 1 },
+    { "id": "heart_auscultation", "finding": { "text": "Tachycardic, normal heart sounds.", "sound": "sounds/heart-normal.wav" }, "relevant": true, "points": 1 },
+    { "id": "radial_pulse", "finding": { "text": "Regular, 140 per minute." }, "relevant": true, "points": 1 },
+    { "id": "abdomen_palpation", "finding": { "text": "Soft, non-tender." }, "relevant": false },
+    { "id": "reflexes_knee", "finding": { "text": "Normal." }, "relevant": false }
+  ],
+  "vitals": {
+    "initial": { "hr": 140, "sbp": 105, "dbp": 65, "rr": 40, "spo2": 91, "temp": 37.2 },
+    "timed": [],
+    "onAction": [
+      { "id": "o2_response", "onAction": "oxygen", "afterMin": 0.5, "changes": [ { "vital": "spo2", "mode": "set", "value": 95, "overMin": 2 } ] },
+      { "id": "salbutamol_response", "onAction": "salbutamol", "afterMin": 1, "changes": [ { "vital": "rr", "mode": "set", "value": 30, "overMin": 4 }, { "vital": "hr", "mode": "delta", "value": 8, "overMin": 2 } ] }
+    ],
+    "deterioration": [
+      { "id": "tiring", "atMin": 4, "unlessActions": ["salbutamol"], "changes": [ { "vital": "spo2", "mode": "delta", "value": -4, "overMin": 3 }, { "vital": "rr", "mode": "delta", "value": 6, "overMin": 3 } ], "message": "Sara is getting more tired and her breathing is harder." }
+    ]
+  },
+  "investigations": [
+    { "id": "glucose", "result": { "text": "5.8 mmol/L." }, "turnaroundMin": 0.5, "indicated": false, "penalty": 0 },
+    { "id": "abg", "result": { "text": "Capillary gas: pH 7.40, pCO2 4.6 kPa (normal for now)." }, "turnaroundMin": 2, "indicated": true, "points": 1, "feedback": "A normal or rising CO2 in a breathless child is a warning sign of tiring." },
+    { "id": "cxr", "result": { "text": "Hyperinflated lungs, no consolidation, no pneumothorax.", "image": "images/cxr-placeholder.svg" }, "turnaroundMin": 5, "indicated": false, "penalty": 1, "feedback": "A chest X-ray is not routinely needed in acute asthma unless pneumothorax or consolidation is suspected." },
+    { "id": "fbc", "result": { "text": "Normal." }, "turnaroundMin": 4, "indicated": false, "penalty": 1 },
+    { "id": "crp", "result": { "text": "4 mg/L." }, "turnaroundMin": 4, "indicated": false, "penalty": 1 }
+  ],
+  "diagnosis": {
+    "options": [
+      { "id": "acute_severe_asthma", "label": "Acute severe asthma" },
+      { "id": "pneumonia", "label": "Community-acquired pneumonia" },
+      { "id": "anaphylaxis", "label": "Anaphylaxis" },
+      { "id": "foreign_body", "label": "Inhaled foreign body" },
+      { "id": "bronchiolitis", "label": "Bronchiolitis" },
+      { "id": "pneumothorax", "label": "Pneumothorax" }
+    ],
+    "correct": "acute_severe_asthma",
+    "correctPoints": 10,
+    "acceptable": [ { "id": "anaphylaxis", "points": 2 }, { "id": "pneumothorax", "points": 2 } ],
+    "maxDifferentials": 3,
+    "feedback": "Inability to complete sentences, RR 40, HR 140 and SpO2 91% with widespread wheeze make this acute severe asthma."
+  },
+  "management": {
+    "actions": [
+      { "id": "salbutamol", "classification": "correct", "points": 5, "withinMin": 5, "latePoints": 2, "feedback": "Give a bronchodilator straight away in acute severe asthma." },
+      { "id": "oxygen", "classification": "correct", "points": 3 },
+      { "id": "ipratropium", "classification": "correct", "points": 2 },
+      { "id": "prednisolone", "classification": "correct", "points": 3, "withinMin": 15, "latePoints": 1 },
+      { "id": "refer_medicine", "classification": "acceptable", "points": 1 },
+      { "id": "amoxicillin", "classification": "neutral" },
+      { "id": "discharge", "classification": "harmful", "points": 10, "critical": true, "feedback": "A child with acute severe asthma must not be sent home." }
+    ],
+    "requiredOrder": []
+  },
+  "questions": [
+    {
+      "id": "q_severity",
+      "checkpoint": { "kind": "before_diagnosis" },
+      "type": "multiple",
+      "prompt": "Which findings point to a severe attack?",
+      "options": [ { "id": "words", "label": "Unable to complete sentences" }, { "id": "rr", "label": "Respiratory rate 40" }, { "id": "spo2", "label": "SpO2 below 92%" }, { "id": "temp", "label": "Temperature 37.2 °C" } ],
+      "correct": ["words", "rr", "spo2"],
+      "points": 3
+    },
+    {
+      "id": "q_silent",
+      "checkpoint": { "kind": "time", "atMin": 6 },
+      "type": "single",
+      "prompt": "What does a 'silent chest' mean in acute asthma?",
+      "options": [ { "id": "better", "label": "The attack is resolving" }, { "id": "life", "label": "A life-threatening attack" }, { "id": "artefact", "label": "A stethoscope problem" } ],
+      "correct": ["life"],
+      "points": 2
+    }
+  ],
+  "rubric": { "decisionWeight": 0.7, "questionWeight": 0.3, "passMark": 60, "irrelevantHistoryPenalty": 0.5 }
+}

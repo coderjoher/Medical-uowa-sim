@@ -29,6 +29,8 @@ export class ActionRecorder {
   private flushing = false;
   private timer: ReturnType<typeof setInterval> | null = null;
   online = true;
+  /** The server refused a batch because another tab is writing to the same attempt. */
+  conflict = false;
   onStatus: (online: boolean, pending: number) => void = () => {};
 
   /** @param local preview mode: keep actions on this PC only, never send them. */
@@ -106,12 +108,17 @@ export class ActionRecorder {
       this.queue = this.queue.filter((a) => !sent.has(a.id));
       this.persist();
       this.online = true;
+      this.conflict = false;
     } catch (e) {
-      // A 4xx other than auth means the server will never take this batch (e.g. attempt finished).
-      if (e instanceof ApiError && e.status === 409) {
+      if (e instanceof ApiError && e.status === 409 && /already finished/.test(e.message)) {
+        // The attempt was closed (e.g. the instructor ended the session): the server will never take these.
         this.queue = [];
         this.persist();
-      } else this.online = false;
+      } else {
+        // Offline, or a clash such as the case open in two tabs: keep everything and retry later.
+        this.online = false;
+        this.conflict = e instanceof ApiError && e.status === 409;
+      }
     } finally {
       this.flushing = false;
     }

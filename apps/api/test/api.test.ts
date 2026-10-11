@@ -178,6 +178,16 @@ describe("student attempts", () => {
     expect(stored.map((x: { ref: string }) => x.ref)).toEqual(["pc_onset", "pc_radiation", "heart_auscultation"]);
   });
 
+  it("refuses a different action that reuses a sequence number", async () => {
+    const { sessionId } = await makeSession(w);
+    const { attempt } = (await req("POST", `/api/sessions/${sessionId}/attempts`, "bob", { caseId: "chest-pain-stemi" })).json();
+    const a = action("history.ask", "pc_onset", 1000);
+    await req("POST", `/api/attempts/${attempt.id}/actions`, "bob", { actions: [a] });
+    const clash = await req("POST", `/api/attempts/${attempt.id}/actions`, "bob", { actions: [{ ...action("history.ask", "pc_radiation", 2000), seq: a.seq }] });
+    expect(clash.statusCode).toBe(409);
+    expect((await req("POST", `/api/attempts/${attempt.id}/actions`, "bob", { actions: [a] })).json()).toMatchObject({ accepted: 0, duplicates: 1 });
+  });
+
   it("other students cannot read or write someone else's attempt", async () => {
     const { sessionId } = await makeSession(w);
     const { attempt } = (await req("POST", `/api/sessions/${sessionId}/attempts`, "alice", { caseId: "chest-pain-stemi" })).json();

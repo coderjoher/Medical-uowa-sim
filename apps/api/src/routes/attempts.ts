@@ -96,18 +96,25 @@ export async function attemptRoutes(app: FastifyInstance) {
     if (a.status !== "in_progress") throw conflict("attempt is already finished");
     let accepted = 0;
     if (actions.length) {
-      const r = await app.db.query(
+      // Re-sent actions (same id) are skipped; a different action reusing a sequence number is an
+      // error (e.g. the attempt open in two tabs), never silently dropped.
+      const r = await app.db
+        .query(
         `INSERT INTO actions (id, attempt_id, seq, case_time_ms, client_ts, type, ref, payload, input_source)
          SELECT x.id, $1, x.seq, x.case_time_ms, x.client_ts, x.type, x.ref, x.payload, x.input_source
          FROM jsonb_to_recordset($2::jsonb) AS x(id uuid, seq int, case_time_ms bigint, client_ts timestamptz, type text, ref text, payload jsonb, input_source text)
-         ON CONFLICT DO NOTHING`,
+         ON CONFLICT (id) DO NOTHING`,
         [
           a.id,
           JSON.stringify(
             actions.map((x) => ({ id: x.id, seq: x.seq, case_time_ms: x.caseTimeMs, client_ts: x.clientTs, type: x.type, ref: x.ref ?? null, payload: x.payload ?? null, input_source: x.inputSource })),
           ),
         ],
-      );
+      )
+        .catch((e: { code?: string; constraint?: string }) => {
+          if (e.code === "23505") throw conflict("another action already has this sequence number; is the case open in two tabs?");
+          throw e;
+        });
       accepted = r.rowCount ?? 0;
     }
     const { rows } = await app.db.query("UPDATE attempts SET last_seen_at = now() WHERE id = $1 RETURNING (SELECT max(seq) FROM actions WHERE attempt_id = $1) AS max_seq", [a.id]);

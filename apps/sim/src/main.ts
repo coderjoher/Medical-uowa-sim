@@ -189,7 +189,8 @@ async function boot() {
     if (!auth.token) return loginScreen(ctx, () => void preview(previewSpec).catch(showError));
     return preview(previewSpec).catch(showError);
   }
-  if (!auth.token) return loginScreen(ctx, () => void home());
+  // After signing in, boot again: that resumes an attempt interrupted by a crash or closed tab.
+  if (!auth.token) return loginScreen(ctx, () => void boot());
   try {
     ctx.user = await api<User>("GET", "/api/me");
   } catch (e) {

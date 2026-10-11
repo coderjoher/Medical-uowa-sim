@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "metadata": {
+    "id": "elderly-sepsis",
+    "version": 1,
+    "title": "DRAFT: Confused 78-year-old woman with a fever",
+    "course": "MED-401 Clinical Reasoning",
+    "specialty": "Acute medicine",
+    "difficulty": "hard",
+    "learningObjectives": [
+      "Recognise sepsis from a chest source in an older patient",
+      "Take blood cultures and start antibiotics and fluids within the first hour",
+      "Escalate a patient who does not respond to fluids"
+    ],
+    "timeLimitMin": 20,
+    "authors": ["DRAFT by dev team for software testing - requires academic authoring and review before use"]
+  },
+  "patient": {
+    "model": "elderly",
+    "name": "Fatima Kareem",
+    "age": 78,
+    "sex": "female",
+    "chiefComplaint": "Fever, cough and new confusion",
+    "handover": "78-year-old woman from home with two days of cough and fever, more confused today. Her daughter is worried.",
+    "appearance": ["breathing", "blinking", "coughing", "pale"]
+  },
+  "history": [
+    { "id": "pc_cough", "topic": "presenting_complaint", "text": "Has she been coughing anything up?", "answer": "Green phlegm since yesterday.", "relevance": "essential", "points": 2 },
+    { "id": "pc_confusion", "topic": "presenting_complaint", "text": "Is the confusion new?", "answer": "Yes, she was completely herself three days ago.", "relevance": "essential", "points": 3, "feedback": "New confusion is a red flag for sepsis in older people." },
+    { "id": "pc_urine", "topic": "presenting_complaint", "text": "Has she been passing urine normally?", "answer": "Much less than usual today.", "relevance": "essential", "points": 2 },
+    { "id": "pc_pain", "topic": "presenting_complaint", "text": "Any chest pain?", "answer": "Some pain on the right side when she breathes in.", "relevance": "useful", "points": 1 },
+    { "id": "ph_conditions", "topic": "past_history", "text": "What medical problems does she have?", "answer": "Type 2 diabetes and high blood pressure.", "relevance": "useful", "points": 1 },
+    { "id": "dh_meds", "topic": "drugs", "text": "What medicines does she take?", "answer": "Metformin, ramipril and amlodipine.", "relevance": "useful", "points": 1 },
+    { "id": "al_allergies", "topic": "allergies", "text": "Any allergies?", "answer": "Penicillin made her sick once, no rash or swelling.", "relevance": "essential", "points": 3, "feedback": "Nausea is an intolerance, not an allergy; check before avoiding first-line antibiotics." },
+    { "id": "sh_living", "topic": "social", "text": "Who does she live with?", "answer": "Alone, her daughter visits daily.", "relevance": "useful", "points": 1 },
+    { "id": "sh_tv", "topic": "social", "text": "What does she like to watch on TV?", "answer": "Cooking programmes.", "relevance": "irrelevant" }
+  ],
+  "examination": [
+    { "id": "general_inspection", "finding": { "text": "Drowsy but rousable, flushed, breathing fast." }, "relevant": true, "points": 1 },
+    { "id": "chest_auscultation_back", "finding": { "text": "Coarse crackles and bronchial breathing at the right base.", "sound": "sounds/lung-crackles.wav" }, "relevant": true, "points": 3 },
+    { "id": "chest_auscultation_front", "finding": { "text": "Crackles in the right lower zone.", "sound": "sounds/lung-crackles.wav" }, "relevant": true, "points": 2 },
+    { "id": "chest_percussion", "finding": { "text": "Dull at the right base." }, "relevant": true, "points": 2 },
+    { "id": "capillary_refill", "finding": { "text": "4 seconds." }, "relevant": true, "points": 2 },
+    { "id": "blood_pressure", "finding": { "text": "92/56 mmHg." }, "relevant": true, "points": 1 },
+    { "id": "heart_auscultation", "finding": { "text": "Tachycardic, normal heart sounds.", "sound": "sounds/heart-normal.wav" }, "relevant": true, "points": 1 },
+    { "id": "abdomen_palpation", "finding": { "text": "Soft, non-tender." }, "relevant": false },
+    { "id": "calf_inspection", "finding": { "text": "No swelling." }, "relevant": false }
+  ],
+  "vitals": {
+    "initial": { "hr": 118, "sbp": 92, "dbp": 56, "rr": 26, "spo2": 90, "temp": 38.9 },
+    "timed": [],
+    "onAction": [
+      { "id": "o2_response", "onAction": "oxygen", "afterMin": 0.5, "changes": [ { "vital": "spo2", "mode": "set", "value": 94, "overMin": 2 } ] },
+      { "id": "fluid_response", "onAction": "iv_fluids", "afterMin": 2, "changes": [ { "vital": "sbp", "mode": "set", "value": 108, "overMin": 5 }, { "vital": "dbp", "mode": "set", "value": 64, "overMin": 5 }, { "vital": "hr", "mode": "delta", "value": -10, "overMin": 5 } ] },
+      { "id": "paracetamol_response", "onAction": "paracetamol", "afterMin": 5, "changes": [ { "vital": "temp", "mode": "set", "value": 38.0, "overMin": 10 } ] }
+    ],
+    "deterioration": [
+      { "id": "shock", "atMin": 8, "unlessActions": ["iv_fluids"], "changes": [ { "vital": "sbp", "mode": "set", "value": 78, "overMin": 4 }, { "vital": "dbp", "mode": "set", "value": 44, "overMin": 4 }, { "vital": "hr", "mode": "delta", "value": 12, "overMin": 4 } ], "message": "Mrs Kareem is more drowsy and her blood pressure is falling." }
+    ]
+  },
+  "investigations": [
+    { "id": "blood_culture", "result": { "text": "Pending (grows Streptococcus pneumoniae at 48 hours)." }, "turnaroundMin": 1, "indicated": true, "points": 3, "feedback": "Take blood cultures before the first dose of antibiotics, without delaying them." },
+    { "id": "abg", "result": { "text": "Venous gas: lactate 3.8 mmol/L, pH 7.31.", "values": [ { "name": "Lactate", "value": "3.8", "unit": "mmol/L", "flag": "high" } ] }, "turnaroundMin": 1, "indicated": true, "points": 3 },
+    { "id": "fbc", "result": { "text": "White cells 18.2, neutrophils 16.0.", "values": [ { "name": "WCC", "value": "18.2", "unit": "x10^9/L", "flag": "high" } ] }, "turnaroundMin": 4, "indicated": true, "points": 1 },
+    { "id": "u_and_e", "result": { "text": "Creatinine 168 (baseline 90). Acute kidney injury.", "values": [ { "name": "Creatinine", "value": "168", "unit": "umol/L", "flag": "high" } ] }, "turnaroundMin": 4, "indicated": true, "points": 2 },
+    { "id": "crp", "result": { "text": "245 mg/L.", "values": [ { "name": "CRP", "value": "245", "unit": "mg/L", "flag": "high" } ] }, "turnaroundMin": 4, "indicated": true, "points": 1 },
+    { "id": "cxr", "result": { "text": "Right lower lobe consolidation.", "image": "images/cxr-placeholder.svg" }, "turnaroundMin": 6, "indicated": true, "points": 2 },
+    { "id": "urinalysis", "result": { "text": "Trace protein only." }, "turnaroundMin": 1, "indicated": true, "points": 1 },
+    { "id": "ct_head", "result": { "text": "No acute abnormality." }, "turnaroundMin": 10, "indicated": false, "penalty": 1, "feedback": "Confusion explained by sepsis does not need a CT head first; it delays treatment." },
+    { "id": "d_dimer", "result": { "text": "Raised." }, "turnaroundMin": 4, "indicated": false, "penalty": 1 }
+  ],
+  "diagnosis": {
+    "options": [
+      { "id": "sepsis_pneumonia", "label": "Sepsis from right lower lobe pneumonia" },
+      { "id": "uti_sepsis", "label": "Urosepsis" },
+      { "id": "pulmonary_embolism", "label": "Pulmonary embolism" },
+      { "id": "stroke", "label": "Stroke" },
+      { "id": "heart_failure", "label": "Acute heart failure" },
+      { "id": "dementia", "label": "Dementia" }
+    ],
+    "correct": "sepsis_pneumonia",
+    "correctPoints": 10,
+    "acceptable": [ { "id": "uti_sepsis", "points": 2 }, { "id": "pulmonary_embolism", "points": 1 } ],
+    "maxDifferentials": 3,
+    "feedback": "Fever, productive cough, right basal signs, new confusion, hypotension and a raised lactate: sepsis from pneumonia."
+  },
+  "management": {
+    "actions": [
+      { "id": "oxygen", "classification": "correct", "points": 2 },
+      { "id": "iv_access", "classification": "correct", "points": 1 },
+      { "id": "iv_fluids", "classification": "correct", "points": 4, "withinMin": 15, "latePoints": 1, "feedback": "Give a fluid bolus early for sepsis with hypotension." },
+      { "id": "co_amoxiclav", "classification": "correct", "points": 5, "withinMin": 20, "latePoints": 2, "feedback": "Give IV antibiotics within the first hour of recognising sepsis." },
+      { "id": "paracetamol", "classification": "acceptable", "points": 1 },
+      { "id": "refer_medicine", "classification": "correct", "points": 2 },
+      { "id": "refer_icu", "classification": "acceptable", "points": 1 },
+      { "id": "furosemide", "classification": "harmful", "points": 8, "feedback": "A diuretic worsens hypotension and kidney injury in sepsis." },
+      { "id": "discharge", "classification": "harmful", "points": 10, "critical": true }
+    ],
+    "requiredOrder": [
+      { "sequence": ["iv_access", "iv_fluids"], "penalty": 1, "feedback": "IV access comes before IV fluids." }
+    ]
+  },
+  "questions": [
+    {
+      "id": "q_sepsis_six",
+      "checkpoint": { "kind": "after_action", "action": "blood_culture" },
+      "type": "multiple",
+      "prompt": "Which of these belong in the first hour of sepsis care?",
+      "options": [ { "id": "cultures", "label": "Blood cultures" }, { "id": "abx", "label": "IV antibiotics" }, { "id": "fluids", "label": "IV fluids" }, { "id": "ct", "label": "CT head" } ],
+      "correct": ["cultures", "abx", "fluids"],
+      "points": 3
+    },
+    {
+      "id": "q_lactate",
+      "checkpoint": { "kind": "before_diagnosis" },
+      "type": "single",
+      "prompt": "What does a lactate of 3.8 mmol/L suggest here?",
+      "options": [ { "id": "hypoperfusion", "label": "Tissue hypoperfusion" }, { "id": "normal", "label": "A normal finding" }, { "id": "lab", "label": "A laboratory error" } ],
+      "correct": ["hypoperfusion"],
+      "points": 2
+    }
+  ],
+  "rubric": { "decisionWeight": 0.7, "questionWeight": 0.3, "passMark": 60, "irrelevantHistoryPenalty": 0.5 }
+}

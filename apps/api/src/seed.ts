@@ -10,6 +10,6 @@ if (process.env.SEED_DEMO === "1") {
   const pw = process.env.DEMO_PASSWORD;
   if (!pw) throw new Error("set DEMO_PASSWORD for the demo accounts");
   await seedDemo(db, pw);
-  console.log("demo data ready: users instructor, author, student1-3");
+  console.log("demo data ready: users instructor, author, student1-5");
 }
 await db.end();

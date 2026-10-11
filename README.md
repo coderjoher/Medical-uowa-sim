@@ -43,7 +43,7 @@ npm run dev:sim
 npm run dev -w @sim/dashboard
 ```
 
-Demo accounts (with `SEED_DEMO=1`): `instructor`, `author`, `student1`–`student3` with
+Demo accounts (with `SEED_DEMO=1`): `instructor`, `author`, `student1`–`student5` with
 `DEMO_PASSWORD`, and `admin` with `ADMIN_PASSWORD`. The seed creates course MED-401, "Sim Lab 1"
 with 30 seats, the reference case (published), and an open session.
 

@@ -598,7 +598,7 @@ export async function playerScreen(
   }, 60_000);
   const resultsLoop = setInterval(() => void fetchReadyResults(), 2000);
   recorder.onStatus = (online, pending) => {
-    syncChip.textContent = online ? (pending ? `Saving (${pending})` : "Saved") : `Offline — ${pending} saved on this PC`;
+    syncChip.textContent = online ? (pending ? `Saving (${pending})` : "Saved") : recorder.conflict ? "Open in another tab — close the other tab" : `Offline — ${pending} saved on this PC`;
     syncChip.className = `chip ${online ? "" : "warn"}`;
   };
   recorder.start();
