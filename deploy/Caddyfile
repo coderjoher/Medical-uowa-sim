@@ -1,0 +1,12 @@
+# HTTPS on the campus LAN. With "tls internal" Caddy issues certificates from its own CA;
+# install that root certificate on the lab PCs once (see README), or replace this with the
+# university's certificate:  tls /certs/cert.pem /certs/key.pem
+{$SITE_ADDRESS} {
+	tls internal
+	encode gzip zstd
+	reverse_proxy api:3000
+}
+
+http://{$SITE_ADDRESS} {
+	redir https://{host}{uri} permanent
+}

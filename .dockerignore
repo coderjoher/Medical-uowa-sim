@@ -1,0 +1,9 @@
+node_modules
+**/node_modules
+**/dist
+apps/sim/public/mediapipe
+test-results
+playwright-report
+assets/models/build
+.git
+.env

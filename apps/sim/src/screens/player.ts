@@ -4,7 +4,6 @@ import { api, liveSocket } from "../api.js";
 import type { Ctx } from "../context.js";
 import type { LoggedAction } from "@sim/engine";
 import { CaseRuntime } from "../player/case-runtime.js";
-import { labelFor } from "../player/labels.js";
 import { SimScene, type View } from "../scene/scene.js";
 import { ActionRecorder } from "../sync.js";
 import { fmtTime, h, modal, mount, toast } from "../ui.js";

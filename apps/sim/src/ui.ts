@@ -5,13 +5,19 @@ type Attrs = Record<string, unknown> & { on?: Record<string, (e: Event) => void>
 export function h<K extends keyof HTMLElementTagNameMap>(tag: K | `${K}.${string}` | `${K}#${string}`, attrs: Attrs | Child = null, ...children: Child[]): HTMLElementTagNameMap[K] {
   const [base, ...rest] = tag.split(/(?=[.#])/);
   const el = document.createElement(base as K);
-  for (const r of rest) r.startsWith(".") ? el.classList.add(r.slice(1)) : (el.id = r.slice(1));
+  for (const r of rest) {
+    if (r.startsWith(".")) el.classList.add(r.slice(1));
+    else el.id = r.slice(1);
+  }
   if (attrs && typeof attrs === "object" && !(attrs instanceof Node)) {
     for (const [k, v] of Object.entries(attrs)) {
       if (k === "on") for (const [ev, fn] of Object.entries(v as Record<string, (e: Event) => void>)) el.addEventListener(ev, fn);
       else if (k === "class") el.className = String(v);
       else if (k === "style" && typeof v === "object") Object.assign(el.style, v);
-      else if (typeof v === "boolean") v ? el.setAttribute(k, "") : el.removeAttribute(k);
+      else if (typeof v === "boolean") {
+        if (v) el.setAttribute(k, "");
+        else el.removeAttribute(k);
+      }
       else if (v !== undefined && v !== null) el.setAttribute(k, String(v));
     }
   } else children.unshift(attrs as Child);

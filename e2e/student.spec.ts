@@ -29,7 +29,9 @@ async function answerCheckpoint(page: Page, options: string[]) {
 
 test("full case with the mouse only, then the debrief", async ({ page }) => {
   const uploads: { url: string; bytes: number; type: string }[] = [];
+  const origins = new Set<string>();
   page.on("request", (r) => {
+    if (!r.url().startsWith("data:") && !r.url().startsWith("blob:")) origins.add(new URL(r.url()).origin);
     if (r.method() !== "GET") uploads.push({ url: r.url(), bytes: r.postDataBuffer()?.length ?? 0, type: r.headers()["content-type"] ?? "" });
   });
 
@@ -81,6 +83,9 @@ test("full case with the mouse only, then the debrief", async ({ page }) => {
   await expect(page.locator(".debrief")).toContainText("Inferior ST-elevation myocardial infarction");
   await expect(page.locator(".debrief")).toContainText(/What you missed/);
   await expect(page.locator(".timeline li")).toHaveCount(13);
+
+  // Runs on the campus LAN alone: every request (app, models, MediaPipe, API) is same-origin.
+  expect([...origins]).toEqual([new URL(page.url()).origin]);
 
   // Privacy: nothing but small JSON was ever sent to the server.
   expect(uploads.length).toBeGreaterThan(0);

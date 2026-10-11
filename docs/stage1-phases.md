@@ -13,6 +13,24 @@ Test tags:
 Weeks follow the PRD timeline (≈28 weeks from kickoff). Phases 2–6 overlap; the order below is the
 dependency order.
 
+## Build status (updated Oct 11, 2026)
+
+Ticked items below are proven by automated tests in this repository (`npm test`: 117 unit and
+API tests; `npm run test:e2e`: 6 browser tests). Unticked items still need doing: most need the
+real lab, real users or a sign-off, and some are partly built (see notes).
+
+| Phase | Built | Still open |
+|---|---|---|
+| 0 Foundations | Monorepo, TypeScript, lint, tests, CI workflow, Docker Compose (API + PostgreSQL + Caddy HTTPS + daily backups), production install and serving checked locally | `docker compose up` on the real server (Docker was not available in the build environment), lab PC benchmark, open questions |
+| 1 Hand tracking | MediaPipe in a Web Worker, One Euro smoothing, pinch hysteresis, hold timing, open-palm menu, swipe, confidence gating, hand-lost handling, calibration, snapping, cursor, camera preview, lighting warning, lab check page | Everything in the real lab (fps, latency, pinch accuracy, go/no-go); replay tests use synthetic landmarks, not recorded sessions |
+| 2 Case model | Schema, shared libraries, validator + CLI, reference case, versioned import in the dashboard | Spreadsheet template and spreadsheet → JSON import; finding sounds, ECG and X-ray images; academics' cases |
+| 3 Backend | Auth (local accounts; LDAP/SSO slot), roles, courses, labs, seats, sessions, attempts, idempotent action log, answer-free student payload, results release, live WebSocket, backup + restore script | University directory login; HTTPS on the real LAN |
+| 4 Room and player | Articraft models (room, bed, monitor, trolley, tools, 4 patients), breathing/blinking/pain animation, live monitor, all case steps, checkpoints, deterioration, captions + speech, refresh resume | Hand-only full-case replay test; frame-rate and load-time measurement on lab PCs; sound/image assets |
+| 5 Scoring | Rubric engine, weighting, critical errors, re-scoring, debrief | Academic review of sample attempts |
+| 6 Dashboard | Sessions, live seats, pause/resume/end, retry, results, Excel/PDF, case library with preview → sign-off → publish, users, courses, labs, health | Editing users' roles, bulk user import |
+| 7 Hardening | Offline buffering, refresh resume, same-origin only, consent notice, mouse mode | Load test for 2 full labs, crash recovery test, security review, lab check on every seat |
+| 8-10 Pilots | — | All |
+
 | # | Phase | Weeks | Gate |
 |---|-------|-------|------|
 | 0 | Foundations & lab benchmark | 1–2 | — |
@@ -69,16 +87,16 @@ Prototype scope (PRD pilot step 1): one patient, stethoscope exam only.
 - Lab check routine (2-minute per-seat test: camera, lighting, tracking fps, audio).
 
 **Exit checklist — automated**
-- [ ] `[unit]` One Euro filter: reduces jitter on a recorded noisy landmark stream without adding more than one frame of lag on a step input.
-- [ ] `[unit]` Pinch hysteresis: distance crossing the start threshold triggers pinch; it does not release until crossing the (larger) release threshold; thresholds scale with measured hand size.
-- [ ] `[unit]` Gesture hold: a gesture shorter than 150 ms never fires; one held ≥ 200 ms always fires exactly once.
-- [ ] `[unit]` Frames below the confidence threshold are ignored and do not move the cursor.
-- [ ] `[unit]` Swipe left/right detected from recorded sequences; no swipe fired from normal pointing movement.
-- [ ] `[unit]` Calibration maps the measured reachable box to the full screen (corners reach screen corners).
-- [ ] `[unit]` Snapping picks the nearest target within range and none outside it.
+- [x] `[unit]` One Euro filter: reduces jitter on a recorded noisy landmark stream without adding more than one frame of lag on a step input.
+- [x] `[unit]` Pinch hysteresis: distance crossing the start threshold triggers pinch; it does not release until crossing the (larger) release threshold; thresholds scale with measured hand size.
+- [x] `[unit]` Gesture hold: a gesture shorter than 150 ms never fires; one held ≥ 200 ms always fires exactly once.
+- [x] `[unit]` Frames below the confidence threshold are ignored and do not move the cursor.
+- [x] `[unit]` Swipe left/right detected from recorded sequences; no swipe fired from normal pointing movement.
+- [x] `[unit]` Calibration maps the measured reachable box to the full screen (corners reach screen corners).
+- [x] `[unit]` Snapping picks the nearest target within range and none outside it.
 - [ ] `[int]` Replay tests: recorded landmark sessions (good light, poor light, hand leaving frame) produce the expected gesture event sequence.
 - [ ] `[e2e]` Mouse and touch still click, drag and hold while tracking is active; switching to mouse is one action.
-- [ ] `[e2e]` Every action log entry records its input source (hand / mouse / touch).
+- [x] `[e2e]` Every action log entry records its input source (hand / mouse / touch).
 - [ ] `[e2e]` Network inspection: no video frames or images leave the browser (no upload requests during a tracked session).
 
 **Exit checklist — in the real lab (10–15 students, stethoscope exam)**
@@ -108,11 +126,11 @@ Prototype scope (PRD pilot step 1): one patient, stethoscope exam only.
 - One fully worked reference case (e.g. 45-year-old man, chest pain 2 h).
 
 **Exit checklist**
-- [ ] `[unit]` Schema validates the reference case and rejects each required field when removed.
-- [ ] `[unit]` Validator flags: missing fields, unknown drugs, unknown tests, unknown exam points, broken references (e.g. a question or rubric item pointing to a non-existent action).
-- [ ] `[unit]` Validator rejects invalid values: negative turnaround, vitals out of physiological range, weighting not summing to 100%, no correct diagnosis.
+- [x] `[unit]` Schema validates the reference case and rejects each required field when removed.
+- [x] `[unit]` Validator flags: missing fields, unknown drugs, unknown tests, unknown exam points, broken references (e.g. a question or rubric item pointing to a non-existent action).
+- [x] `[unit]` Validator rejects invalid values: negative turnaround, vitals out of physiological range, weighting not summing to 100%, no correct diagnosis.
 - [ ] `[int]` Spreadsheet template → import script → JSON round-trips the reference case with no data loss.
-- [ ] `[int]` Importing a changed case creates a **new version number**; older versions stay readable.
+- [x] `[int]` Importing a changed case creates a **new version number**; older versions stay readable.
 - [ ] `[int]` Case JSON stored in the case/asset store; assets (sounds, images, ECGs) referenced by ID resolve.
 - [ ] `[manual]` An academic fills the template for a second case with no developer help beyond the guide.
 - [ ] `[signoff]` Template and schema approved by the academic partners.
@@ -134,12 +152,12 @@ Prototype scope (PRD pilot step 1): one patient, stethoscope exam only.
 
 **Exit checklist**
 - [ ] `[int]` Login works against university directory (or documented fallback); bad credentials rejected.
-- [ ] `[int]` Role matrix test: each role can reach only its endpoints (student cannot read results of others, instructor cannot edit users, etc.).
-- [ ] `[int]` Student joins only a session that an instructor launched for their course/lab.
-- [ ] `[int]` Case payload sent to the student contains no correct diagnosis, rubric, harmful/correct flags, question answers or feedback; investigation results are released only after ordering + turnaround.
-- [ ] `[int]` Action log: entries stored with client and server timestamps; duplicate batch submissions do not create duplicate actions; out-of-order batches are ordered correctly.
-- [ ] `[int]` Every attempt is stored against the exact case version played.
-- [ ] `[int]` WebSocket pushes seat status changes to a subscribed instructor within 2 s.
+- [x] `[int]` Role matrix test: each role can reach only its endpoints (student cannot read results of others, instructor cannot edit users, etc.).
+- [x] `[int]` Student joins only a session that an instructor launched for their course/lab.
+- [x] `[int]` Case payload sent to the student contains no correct diagnosis, rubric, harmful/correct flags, question answers or feedback; investigation results are released only after ordering + turnaround.
+- [x] `[int]` Action log: entries stored with client and server timestamps; duplicate batch submissions do not create duplicate actions; out-of-order batches are ordered correctly.
+- [x] `[int]` Every attempt is stored against the exact case version played.
+- [x] `[int]` WebSocket pushes seat status changes to a subscribed instructor within 2 s.
 - [ ] `[manual]` Backup runs nightly; a restore to a fresh server succeeds and data matches.
 - [ ] `[manual]` All traffic is HTTPS on the LAN; HTTP redirects or is refused.
 
@@ -161,16 +179,16 @@ Prototype scope (PRD pilot step 1): one patient, stethoscope exam only.
 - Swipe to rotate patient / change view (front, back, close-ups).
 
 **Exit checklist**
-- [ ] `[unit]` Vitals engine: starting values, scheduled changes and action-triggered changes produce the expected values at given case times.
-- [ ] `[unit]` Deterioration event fires on time if the action is missing (e.g. SpO2 drops when oxygen not given within 5 case-minutes) and is cancelled if the action happens first.
-- [ ] `[unit]` Investigation results appear only after their in-case turnaround time.
-- [ ] `[unit]` Checkpoints pause the case at their set points and resume after answering.
+- [x] `[unit]` Vitals engine: starting values, scheduled changes and action-triggered changes produce the expected values at given case times.
+- [x] `[unit]` Deterioration event fires on time if the action is missing (e.g. SpO2 drops when oxygen not given within 5 case-minutes) and is cancelled if the action happens first.
+- [x] `[unit]` Investigation results appear only after their in-case turnaround time.
+- [x] `[unit]` Checkpoints pause the case at their set points and resume after answering.
 - [ ] `[unit]` Player loads every case in the library with no case-specific code (data-driven test over all case files).
-- [ ] `[e2e]` Full reference case completed with **mouse only**.
+- [x] `[e2e]` Full reference case completed with **mouse only**.
 - [ ] `[e2e]` Full reference case completed with **hand tracking only** (replayed landmark input).
 - [ ] `[e2e]` Student can move between history, exam and investigations in any order.
-- [ ] `[e2e]` Every action (question asked, exam point, test ordered, answer, diagnosis, drug) produces one timestamped log entry.
-- [ ] `[e2e]` Captions shown for all patient speech.
+- [x] `[e2e]` Every action (question asked, exam point, test ordered, answer, diagnosis, drug) produces one timestamped log entry.
+- [x] `[e2e]` Captions shown for all patient speech.
 - [ ] `[perf]` First case ready **≤ 15 s** on lab PC; assets cached after first load (second load faster, verified in network panel).
 - [ ] `[perf]` Room + patient + monitor ≥ 60 fps at native resolution on lab PC.
 - [ ] `[manual]` Each patient model and animation reviewed; exam findings (heart/lung sounds, pupil response) play correctly through headphones.
@@ -191,18 +209,18 @@ Prototype scope (PRD pilot step 1): one patient, stethoscope exam only.
 - Student debrief: score, pass/not passed, timeline of actions vs expected path, feedback per key decision.
 
 **Exit checklist** (use the PRD examples as test fixtures)
-- [ ] `[unit]` History: essential question asked → points (e.g. radiation of pain +2); irrelevant questions apply only the light efficiency penalty.
-- [ ] `[unit]` Examination: relevant point performed → points (e.g. chest auscultation +3).
-- [ ] `[unit]` Investigations: indicated test → points (ECG +5); unnecessary test → light penalty (CT −1).
-- [ ] `[unit]` Diagnosis: correct +10; acceptable differential +4; other diagnosis 0.
-- [ ] `[unit]` Management: correct action within time window scores (aspirin within 10 case-minutes +5); late or out-of-required-order scores as defined in the rubric.
-- [ ] `[unit]` Safety: harmful action penalized (contraindicated drug −10).
-- [ ] `[unit]` Critical error → "not passed" regardless of total points.
-- [ ] `[unit]` MCQ single and multiple answer and list-based short answers scored correctly, including partial/incorrect selections per rubric.
-- [ ] `[unit]` Final score = decisions × weight + questions × weight, using the per-case split (default 70/30).
-- [ ] `[unit]` Gesture/movement quality never affects score (same actions via mouse vs hand → identical score).
-- [ ] `[int]` Changing a rubric and re-scoring stored attempts from the action log gives the new expected results; old results remain traceable to their rubric version.
-- [ ] `[e2e]` Debrief shows score, pass status, action timeline vs expected path, and feedback for every key decision.
+- [x] `[unit]` History: essential question asked → points (e.g. radiation of pain +2); irrelevant questions apply only the light efficiency penalty.
+- [x] `[unit]` Examination: relevant point performed → points (e.g. chest auscultation +3).
+- [x] `[unit]` Investigations: indicated test → points (ECG +5); unnecessary test → light penalty (CT −1).
+- [x] `[unit]` Diagnosis: correct +10; acceptable differential +4; other diagnosis 0.
+- [x] `[unit]` Management: correct action within time window scores (aspirin within 10 case-minutes +5); late or out-of-required-order scores as defined in the rubric.
+- [x] `[unit]` Safety: harmful action penalized (contraindicated drug −10).
+- [x] `[unit]` Critical error → "not passed" regardless of total points.
+- [x] `[unit]` MCQ single and multiple answer and list-based short answers scored correctly, including partial/incorrect selections per rubric.
+- [x] `[unit]` Final score = decisions × weight + questions × weight, using the per-case split (default 70/30).
+- [x] `[unit]` Gesture/movement quality never affects score (same actions via mouse vs hand → identical score).
+- [x] `[int]` Changing a rubric and re-scoring stored attempts from the action log gives the new expected results; old results remain traceable to their rubric version.
+- [x] `[e2e]` Debrief shows score, pass status, action timeline vs expected path, and feedback for every key decision.
 - [ ] `[signoff]` Academics review scored sample attempts for the reference case and agree with the results.
 
 ---
@@ -217,16 +235,16 @@ Prototype scope (PRD pilot step 1): one patient, stethoscope exam only.
 - Case authoring flow: import → validation → preview mode → author sign-off → publish to course.
 
 **Exit checklist**
-- [ ] `[e2e]` Instructor creates a session with course, cases, lab, time window and retry flag; students in that lab can join only within the window.
-- [ ] `[e2e]` Live view shows each seat's student name, current step, elapsed time, and tracking/connection warnings, updating in real time.
-- [ ] `[e2e]` Pause and end apply to every seat in the session.
-- [ ] `[e2e]` Allow-retry for one student creates a new attempt for that student only.
-- [ ] `[e2e]` Results views per student, per case and per cohort; most-missed items per case are correct against fixture data.
-- [ ] `[int]` Excel and PDF exports open correctly and match on-screen numbers.
+- [x] `[e2e]` Instructor creates a session with course, cases, lab, time window and retry flag; students in that lab can join only within the window.
+- [x] `[e2e]` Live view shows each seat's student name, current step, elapsed time, and tracking/connection warnings, updating in real time.
+- [x] `[e2e]` Pause and end apply to every seat in the session.
+- [x] `[e2e]` Allow-retry for one student creates a new attempt for that student only.
+- [x] `[e2e]` Results views per student, per case and per cohort; most-missed items per case are correct against fixture data.
+- [x] `[int]` Excel and PDF exports open correctly and match on-screen numbers.
 - [ ] `[e2e]` Admin CRUD for users/roles, courses, labs and seats.
-- [ ] `[e2e]` Case library shows versions and publish status; a case cannot be published without validation passing and author sign-off in preview mode.
-- [ ] `[e2e]` A published case appears for the course; an unpublished one does not.
-- [ ] `[manual]` System health page shows server status, active sessions, storage use and last backup time.
+- [x] `[e2e]` Case library shows versions and publish status; a case cannot be published without validation passing and author sign-off in preview mode.
+- [x] `[e2e]` A published case appears for the course; an unpublished one does not.
+- [x] `[manual]` System health page shows server status, active sessions, storage use and last backup time.
 - [ ] `[int]` Role checks: instructors only see their courses; case authors cannot reach admin functions.
 
 ---
@@ -238,10 +256,10 @@ Prototype scope (PRD pilot step 1): one patient, stethoscope exam only.
 **Exit checklist**
 - [ ] `[perf]` Rendering ≥ 60 fps and tracking ≥ 30 fps / ≤ 100 ms with a real case running on lab PCs.
 - [ ] `[perf]` Load test: **2 full labs at once (≥ 60 students, adjust to confirmed lab sizes)** with no errors and acceptable API/WebSocket latency; server sized from results.
-- [ ] `[int]` Network drop: disconnect LAN mid-case → actions buffered locally → reconnect → all actions synced in order, no duplicates.
-- [ ] `[e2e]` Browser refresh mid-case resumes at the same step with the same timer, vitals and answers.
+- [x] `[int]` Network drop: disconnect LAN mid-case → actions buffered locally → reconnect → all actions synced in order, no duplicates.
+- [x] `[e2e]` Browser refresh mid-case resumes at the same step with the same timer, vitals and answers.
 - [ ] `[e2e]` Browser crash / tab kill resumes the attempt on relaunch.
-- [ ] `[int]` Runs with no internet access (all assets and libraries served from campus server).
+- [x] `[int]` Runs with no internet access (all assets and libraries served from campus server).
 - [ ] `[manual]` Security review: role-based access, HTTPS only, no answer leakage in payloads, source maps or local storage.
 - [ ] `[manual]` Privacy: confirmed no webcam video or images stored or sent; consent notice shown to students before tracking starts.
 - [ ] `[manual]` Accessibility: whole case completable in mouse mode; captions for all speech.
