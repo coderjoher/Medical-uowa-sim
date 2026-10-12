@@ -7,6 +7,7 @@ import { CaseRuntime } from "../player/case-runtime.js";
 import type { SimScene as SimSceneT, View } from "../scene/scene.js";
 import { ActionRecorder } from "../sync.js";
 import { fmtTime, h, icon, modal, mount, toast, type IconName } from "../ui.js";
+import { MonitorSound, isMuted, onMuteChange, playFinding, setMuted, speak, unlockAudio, voiceFor } from "../audio.js";
 import { drawPreview } from "./calibration.js";
 import type { Debrief } from "./debrief.js";
 
@@ -98,6 +99,14 @@ export async function playerScreen(
   const previewCanvas = h("canvas.preview", { width: 240, height: 135, hidden: true, "aria-hidden": "true" });
   const previewBtn = h("button.small.ghost", { on: { click: () => (previewCanvas.hidden = !previewCanvas.hidden) } }, "Camera");
   const navBadges = new Map<Panel, HTMLElement>();
+  const soundBtn = h("button.small.ghost", { on: { click: () => setMuted(!isMuted()) } });
+  const renderSound = (m: boolean) => {
+    soundBtn.textContent = m ? "Sound off" : "Sound on";
+    soundBtn.setAttribute("aria-pressed", String(!m));
+  };
+  renderSound(isMuted());
+  const stopMuteWatch = onMuteChange(renderSound);
+  const monitorSound = new MonitorSound();
 
   const nav = h(
     "nav.menubar",
@@ -119,7 +128,7 @@ export async function playerScreen(
         h("div.case-id", h("strong.case-title", sc.metadata.title), h("span.case-sub", `${sc.patient.name}, ${sc.patient.age} · ${sc.patient.chiefComplaint}`)),
         h("div.clock", icon("clock", 20), timer, h("span.time-track", { "aria-hidden": "true" }, timeFill)),
         vitalsEl,
-        h("div.status", viewChip, trackChip, syncChip, modeBtn, previewBtn),
+        h("div.status", viewChip, trackChip, syncChip, soundBtn, modeBtn, previewBtn),
       ),
       panelEl,
       caption,
@@ -146,22 +155,14 @@ export async function playerScreen(
   };
 
   // ---- Helpers ------------------------------------------------------------------------------
+  const patientVoice = voiceFor(sc.patient.model);
   const say = (who: string, text: string) => {
     setCaption(who, text);
-    try {
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = "en-GB";
-      speechSynthesis.speak(u);
-    } catch {
-      /* no speech engine: captions still show */
-    }
+    speak(text, patientVoice);
   };
 
   const playSound = (path?: string) => {
-    if (!path) return;
-    const a = new Audio(`/media/${path}`);
-    a.play().catch(() => {});
+    if (path) playFinding(path);
   };
 
   const setActiveNav = () => nav.querySelectorAll("[data-panel]").forEach((b) => b.classList.toggle("active", (b as HTMLElement).dataset.panel === panel));
@@ -335,8 +336,11 @@ export async function playerScreen(
     if (!point) return;
     rt.record("exam.perform", id, { tool: point.tool });
     const f = sc.examination.find((e) => e.id === id)?.finding;
-    say(point.label, f?.text ?? "No abnormality found.");
-    playSound(f?.sound);
+    // A finding with a recording is heard, with the text as a caption; others are read aloud.
+    if (f?.sound) {
+      setCaption(point.label, f.text);
+      playSound(f.sound);
+    } else say(point.label, f?.text ?? "No abnormality found.");
     if (panel === "exam") renderPanel();
   };
 
@@ -656,6 +660,8 @@ export async function playerScreen(
       vital("spo2", "SpO₂", String(x.spo2), "%", x.spo2 < 92),
       vital("temp", "T", x.temp.toFixed(1), "°C", x.temp >= 38.5 || x.temp < 35),
     );
+    monitorSound.vitals = { hr: x.hr, spo2: x.spo2, alarm: x.hr > 120 || x.hr < 50 || x.sbp < 90 || x.rr > 24 || x.spo2 < 92 };
+    monitorSound.paused = !rt.clock.running;
     const limit = sc.metadata.timeLimitMin * 60_000;
     timer.textContent = `${fmtTime(rt.now)} / ${fmtTime(limit)}`;
     timeFill.style.width = `${Math.min(100, (rt.now / limit) * 100)}%`;
@@ -705,6 +711,8 @@ export async function playerScreen(
             on: {
               click: () => {
                 close();
+                unlockAudio();
+                monitorSound.start();
                 rt.record("case.start");
                 if (sessionStatus === "open") rt.clock.start();
                 applySession(sessionStatus);
@@ -718,6 +726,7 @@ export async function playerScreen(
     );
   } else {
     toast("Resumed where you stopped");
+    monitorSound.start(); // audible after the first click on the page (browser autoplay rule)
     applySession(sessionStatus);
     if (sessionStatus === "open") rt.clock.start();
   }
@@ -757,6 +766,8 @@ export async function playerScreen(
     if (ending) return;
     ending = true;
     clearInterval(loop);
+    monitorSound.stop();
+    stopMuteWatch();
     clearInterval(resultsLoop);
     clearInterval(statsLoop);
     if (!byInstructor) rt.record("case.end");
