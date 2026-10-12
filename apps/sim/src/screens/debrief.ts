@@ -2,7 +2,7 @@ import type { ScoreReport } from "@sim/engine";
 import type { StudentCase } from "@sim/shared";
 import { api } from "../api.js";
 import { itemLabel, labelFor } from "../player/labels.js";
-import { fmtTime, h, mount } from "../ui.js";
+import { fmtTime, h, icon, mount } from "../ui.js";
 import { caseSurvey } from "./surveys.js";
 
 export interface Debrief {
@@ -46,30 +46,37 @@ export async function debriefScreen(attemptId: string, sc: StudentCase, back: ()
       h("h1", sc.metadata.title),
       h(
         "section.card.score",
-        h("div.big-score", `${Math.round(r.totalPct)}%`),
-        h("div", { class: r.passed ? "pass" : "fail" }, r.passed ? "Passed" : "Not passed"),
-        h("p.muted", `Decisions ${r.decisions.pct}% × ${Math.round(r.weights.decisions * 100)}% + questions ${r.questions.pct}% × ${Math.round(r.weights.questions * 100)}% · pass mark ${r.passMark}%`),
-        r.criticalErrors.length ? h("div.critical", h("h3", "Critical error"), ...r.criticalErrors.map((c) => h("p", h("strong", itemLabel(sc, "safety", c.ref)), c.feedback ? ` — ${c.feedback}` : ""))) : null,
+        h(
+          "div",
+          { class: r.passed ? "score-ring passed" : "score-ring", style: { "--pct": String(Math.max(0, Math.min(100, r.totalPct))) } },
+          h("div", h("div.big-score", `${Math.round(r.totalPct)}%`), h("div", { class: r.passed ? "pass" : "fail" }, icon(r.passed ? "check" : "alert", 18), r.passed ? "Passed" : "Not passed")),
+        ),
+        h(
+          "div.score-detail",
+          h("p.muted", `Decisions ${r.decisions.pct}% × ${Math.round(r.weights.decisions * 100)}% + questions ${r.questions.pct}% × ${Math.round(r.weights.questions * 100)}% · pass mark ${r.passMark}%`),
         h(
           "table.areas",
-          h("thead", h("tr", h("th", "Area"), h("th", "Points"))),
+          h("thead", h("tr", h("th", "Area"), h("th", { "aria-hidden": "true" }), h("th", "Points"))),
           // Fixed order: stored reports come back from the database with keys reordered.
           h(
             "tbody",
             ...(["history", "examination", "investigations", "diagnosis", "management", "safety"] as const).map((a) => {
               const v = r.areas[a];
-              return h("tr", h("td", AREA_LABEL[a]!), h("td", v.max ? `${v.points} / ${v.max}` : `${v.points}`));
+              const pct = v.max ? Math.max(0, Math.min(100, (v.points / v.max) * 100)) : 0;
+              return h("tr", h("td", AREA_LABEL[a]!), h("td", { "aria-hidden": "true" }, v.max ? h("div.meter", h("span", { style: { width: `${pct}%` } })) : null), h("td", v.max ? `${v.points} / ${v.max}` : `${v.points}`));
             }),
           ),
         ),
+        ),
+        r.criticalErrors.length ? h("div.critical", h("h3", "Critical error"), ...r.criticalErrors.map((c) => h("p", h("strong", itemLabel(sc, "safety", c.ref)), c.feedback ? ` — ${c.feedback}` : ""))) : null,
       ),
-      h("section.card", h("h2", "Correct diagnosis"), h("p", itemLabel(sc, "diagnosis", d.diagnosis.correct)), d.diagnosis.feedback ? h("p.feedback", d.diagnosis.feedback) : null),
-      h("section.card", h("h2", `What you missed (${missed.length})`), missed.length ? h("ul", ...missed.map(item)) : h("p", "Nothing — well done.")),
+      h("section.card", h("h2", icon("diagnosis", 24), "Correct diagnosis"), h("p", itemLabel(sc, "diagnosis", d.diagnosis.correct)), d.diagnosis.feedback ? h("p.feedback", d.diagnosis.feedback) : null),
+      h("section.card", h("h2", icon("alert", 24), `What you missed (${missed.length})`), missed.length ? h("ul", ...missed.map(item)) : h("p", "Nothing — well done.")),
       penalties.length ? h("section.card", h("h2", "Actions that cost points"), h("ul", ...penalties.map(item))) : null,
-      h("section.card", h("h2", `What went well (${well.length})`), h("ul", ...well.map(item))),
+      h("section.card", h("h2", icon("check", 24), `What went well (${well.length})`), h("ul", ...well.map(item))),
       h(
         "section.card",
-        h("h2", "Your timeline"),
+        h("h2", icon("clock", 24), "Your timeline"),
         h("ol.timeline", ...d.timeline.map((t) => h("li", h("span.time", fmtTime(t.caseTimeMs)), labelFor(sc, t.type, t.ref)))),
       ),
       preloaded ? null : caseSurvey(attemptId),

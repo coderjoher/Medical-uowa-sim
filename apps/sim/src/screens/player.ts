@@ -6,7 +6,7 @@ import type { LoggedAction } from "@sim/engine";
 import { CaseRuntime } from "../player/case-runtime.js";
 import type { SimScene as SimSceneT, View } from "../scene/scene.js";
 import { ActionRecorder } from "../sync.js";
-import { fmtTime, h, modal, mount, toast } from "../ui.js";
+import { fmtTime, h, icon, modal, mount, toast, type IconName } from "../ui.js";
 import { drawPreview } from "./calibration.js";
 import type { Debrief } from "./debrief.js";
 
@@ -38,6 +38,17 @@ const TOPICS: Record<string, string> = {
 };
 const VIEW_LABEL: Record<View, string> = { overview: "Whole patient", chest: "Chest", head: "Head", back: "Back" };
 const GENERIC_TURNAROUND_MIN = 2;
+const PANELS: { id: Panel; label: string; title: string; icon: IconName }[] = [
+  { id: "history", label: "History", title: "History", icon: "history" },
+  { id: "exam", label: "Examine", title: "Examination", icon: "exam" },
+  { id: "investigations", label: "Tests", title: "Investigations", icon: "tests" },
+  { id: "management", label: "Manage", title: "Management", icon: "manage" },
+  { id: "diagnosis", label: "Diagnosis", title: "Diagnosis", icon: "diagnosis" },
+];
+/** Selection mark drawn in CSS (a radio dot or a check box); hidden from screen readers. */
+const indicator = (kind: "radio" | "check") => h("span", { class: `indicator ${kind}`, "aria-hidden": "true" });
+const doneMark = () => h("span.tick", { "aria-hidden": "true" }, icon("check", 16));
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /**
  * Preview mode for case authors: the same player, but nothing is stored. Results come from the
@@ -74,35 +85,42 @@ export async function playerScreen(
 
   // ---- Layout -------------------------------------------------------------------------------
   const timer = h("span.timer", { "aria-label": "Case time" });
+  const timeFill = h("span.time-fill");
   const vitalsEl = h("div.vitals", { "aria-live": "off" });
   const trackChip = h("span.chip");
   const syncChip = h("span.chip");
-  const modeBtn = h("button.small", { on: { click: () => toggleMode() } });
+  const modeBtn = h("button.small.ghost", { on: { click: () => toggleMode() } });
   const caption = h("div.caption", { role: "status", "aria-live": "polite" });
+  const setCaption = (who: string, text: string) =>
+    caption.replaceChildren(h("span.speaker", { "aria-hidden": "true" }, who === "Nurse" ? icon("user", 20) : who.charAt(0)), h("p", h("strong", `${who}: `), text));
   const panelEl = h("aside.panel", { "aria-live": "polite", hidden: true });
   const viewChip = h("span.chip");
   const previewCanvas = h("canvas.preview", { width: 240, height: 135, hidden: true, "aria-hidden": "true" });
-  const previewBtn = h("button.small", { on: { click: () => (previewCanvas.hidden = !previewCanvas.hidden) } }, "Camera");
+  const previewBtn = h("button.small.ghost", { on: { click: () => (previewCanvas.hidden = !previewCanvas.hidden) } }, "Camera");
+  const navBadges = new Map<Panel, HTMLElement>();
 
   const nav = h(
     "nav.menubar",
     { "aria-label": "Case sections" },
-    ...(
-      [
-        ["history", "History"],
-        ["exam", "Examine"],
-        ["investigations", "Tests"],
-        ["management", "Manage"],
-        ["diagnosis", "Diagnosis"],
-      ] as const
-    ).map(([p, label]) => h("button.big", { "data-panel": p, on: { click: () => openPanel(p) } }, label)),
-    h("button.big.finish", { on: { click: () => confirmFinish() } }, "Finish case"),
+    ...PANELS.map((p) => {
+      const badge = h("span.nav-badge", { "aria-hidden": "true" });
+      navBadges.set(p.id, badge);
+      return h("button.big.nav", { "data-panel": p.id, on: { click: () => openPanel(p.id) } }, icon(p.icon, 24), h("span", p.label), badge);
+    }),
+    h("span.nav-sep", { "aria-hidden": "true" }),
+    h("button.big.nav.finish", { on: { click: () => confirmFinish() } }, icon("finish", 24), h("span", "Finish case")),
   );
 
   mount(
     h(
       "div.player",
-      h("header.hud", h("strong.case-title", sc.metadata.title), timer, vitalsEl, viewChip, trackChip, syncChip, modeBtn, previewBtn),
+      h(
+        "header.hud",
+        h("div.case-id", h("strong.case-title", sc.metadata.title), h("span.case-sub", `${sc.patient.name}, ${sc.patient.age} · ${sc.patient.chiefComplaint}`)),
+        h("div.clock", icon("clock", 20), timer, h("span.time-track", { "aria-hidden": "true" }, timeFill)),
+        vitalsEl,
+        h("div.status", viewChip, trackChip, syncChip, modeBtn, previewBtn),
+      ),
       panelEl,
       caption,
       nav,
@@ -129,7 +147,7 @@ export async function playerScreen(
 
   // ---- Helpers ------------------------------------------------------------------------------
   const say = (who: string, text: string) => {
-    caption.replaceChildren(h("strong", `${who}: `), text);
+    setCaption(who, text);
     try {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
@@ -189,19 +207,51 @@ export async function playerScreen(
       return;
     }
     panelEl.hidden = false;
-    const body =
+    const same = panelEl.dataset.panel === panel;
+    const scrollTop = same ? (panelEl.querySelector(".panel-body")?.scrollTop ?? 0) : 0;
+    const [sub, body] =
       panel === "history" ? historyPanel() : panel === "exam" ? examPanel() : panel === "investigations" ? investigationsPanel() : panel === "management" ? managementPanel() : diagnosisPanel();
-    panelEl.replaceChildren(h("button.close", { "aria-label": "Close panel", on: { click: () => openPanel(null) } }, "×"), body);
+    const meta = PANELS.find((x) => x.id === panel)!;
+    const bodyEl = h("div.panel-body", ...body);
+    panelEl.dataset.panel = panel;
+    panelEl.classList.toggle("entering", !same);
+    panelEl.replaceChildren(
+      h(
+        "header.panel-head",
+        h("span.panel-icon", icon(meta.icon, 24)),
+        h("div.panel-titles", h("h2", meta.title), h("p.panel-sub", sub)),
+        h("button.close", { "aria-label": "Close panel", on: { click: () => openPanel(null) } }, icon("close", 22)),
+      ),
+      bodyEl,
+    );
+    bodyEl.scrollTop = scrollTop;
+    updateBadges();
+  };
+  /** Progress counts on the section buttons (decorative; the panels say the same in words). */
+  const updateBadges = () => {
+    const n = (type: string) => new Set(rt.actions.filter((a) => a.type === type).map((a) => a.ref)).size;
+    const counts: Record<Panel, string> = {
+      history: n("history.ask") ? String(n("history.ask")) : "",
+      exam: n("exam.perform") ? String(n("exam.perform")) : "",
+      investigations: n("investigation.order") ? String(n("investigation.order")) : "",
+      management: n("management.give") ? String(n("management.give")) : "",
+      diagnosis: rt.has("diagnosis.submit") ? "✓" : "",
+    };
+    for (const [p, el] of navBadges) {
+      el.textContent = counts[p];
+      el.hidden = !counts[p];
+    }
   };
 
   // ---- History ------------------------------------------------------------------------------
   let topic = sc.history[0]?.topic ?? "presenting_complaint";
   const historyPanel = () => {
     const topics = [...new Set(sc.history.map((q) => q.topic))];
-    return h(
-      "div",
-      h("h2", "History"),
-      h("div.tabs", ...topics.map((t) => h("button", { class: t === topic ? "active" : "", on: { click: () => ((topic = t), renderPanel()) } }, TOPICS[t] ?? t))),
+    const asked = new Set(rt.actions.filter((a) => a.type === "history.ask").map((a) => a.ref)).size;
+    return [
+      `${asked} of ${sc.history.length} questions asked`,
+      [
+      h("div.tabs", { role: "group", "aria-label": "Topics" }, ...topics.map((t) => h("button", { class: t === topic ? "active" : "", "aria-pressed": t === topic, on: { click: () => ((topic = t), renderPanel()) } }, TOPICS[t] ?? t))),
       h(
         "div.list",
         ...sc.history
@@ -211,12 +261,14 @@ export async function playerScreen(
             return h(
               "button.item",
               { class: asked ? "item done" : "item", on: { click: () => ask(q.id) } },
-              h("span", q.text),
-              asked ? h("small.answer", q.answer) : null,
+              h("span.item-label", q.text),
+              asked ? h("small.answer", `“${q.answer}”`) : null,
+              asked ? doneMark() : null,
             );
           }),
       ),
-    );
+      ],
+    ] as const;
   };
   const ask = (id: string) => {
     const q = sc.history.find((x) => x.id === id)!;
@@ -228,29 +280,39 @@ export async function playerScreen(
   // ---- Examination --------------------------------------------------------------------------
   const examPanel = () => {
     const found = rt.actions.filter((a) => a.type === "exam.perform").map((a) => a.ref!);
-    return h(
-      "div",
-      h("h2", "Examination"),
-      h("p.muted", "Pick a tool from the tray, then point at a highlighted spot on the patient. Swipe or use the view buttons to turn the patient."),
+    const unique = [...new Set(found)];
+    return [
+      unique.length ? `${plural(unique.length, "finding")} recorded` : "Choose an instrument to begin",
+      [
+      h("p.hint", icon("info", 20), h("span", "Pick an instrument, then point at a highlighted spot on the patient. Swipe or use the view buttons to turn the patient.")),
+      h("h3", "Instrument tray"),
       h("div.tray", { role: "group", "aria-label": "Instrument tray" }, ...TOOLS.map((t) => h("button.tool", { class: tool === t.id ? "tool active" : "tool", "aria-pressed": tool === t.id, on: { click: () => pickTool(t.id) } }, t.label))),
-      h("div.tabs", ...(["overview", "chest", "head", "back"] as View[]).map((v) => h("button", { class: scene.view === v ? "active" : "", on: { click: () => setView(v) } }, VIEW_LABEL[v]))),
-      tool ? h("div.list.compact", ...EXAM_POINTS.filter((p) => p.tool === tool).map((p) => h("button.item", { class: found.includes(p.id) ? "item done" : "item", on: { click: () => examine(p.id) } }, p.label))) : null,
-      found.length
+      h("h3", "View"),
+      h("div.tabs.segmented", { role: "group", "aria-label": "View" }, ...(["overview", "chest", "head", "back"] as View[]).map((v) => h("button", { class: scene.view === v ? "active" : "", "aria-pressed": scene.view === v, on: { click: () => setView(v) } }, VIEW_LABEL[v]))),
+      tool
+        ? h(
+            "div.group",
+            h("h3", "Examine"),
+            h("div.list.compact", ...EXAM_POINTS.filter((p) => p.tool === tool).map((p) => h("button.item", { class: found.includes(p.id) ? "item done" : "item", on: { click: () => examine(p.id) } }, h("span.item-label", p.label), found.includes(p.id) ? doneMark() : null))),
+          )
+        : null,
+      unique.length
         ? h(
             "div.findings",
             h("h3", "Findings"),
-            ...[...new Set(found)].map((id) => {
+            ...unique.map((id) => {
               const f = sc.examination.find((e) => e.id === id)?.finding;
               return h(
-                "div",
+                "div.finding",
                 h("p", h("strong", `${EXAM_POINTS_BY_ID.get(id)?.label}: `), findingText(id)),
-                f?.sound ? h("button.small", { on: { click: () => playSound(f.sound) } }, "▶ Listen again") : null,
+                f?.sound ? h("button.small.listen", { on: { click: () => playSound(f.sound) } }, icon("volume", 18), "Listen again") : null,
                 f?.image ? figure(f.image, EXAM_POINTS_BY_ID.get(id)?.label ?? "Finding") : null,
               );
             }),
           )
         : null,
-    );
+      ],
+    ] as const;
   };
   const findingText = (id: string) => sc.examination.find((e) => e.id === id)?.finding.text ?? "No abnormality found.";
   const pickTool = (t: ExamTool) => {
@@ -284,10 +346,11 @@ export async function playerScreen(
     const status = new Map(rt.investigations().map((s) => [s.id, s]));
     const orderedOther = new Map(rt.actions.filter((a) => a.type === "investigation.order" && !caseTests.has(a.ref!)).map((a) => [a.ref!, a.caseTimeMs]));
     const cats = [...new Set(TESTS.map((t) => t.category))];
-    return h(
-      "div",
-      h("h2", "Investigations"),
-      ...cats.map((c) =>
+    const orderedCount = status.size + orderedOther.size;
+    const back = [...status.keys(), ...orderedOther.keys()].filter((id) => results.has(id)).length;
+    return [
+      orderedCount ? `${orderedCount} ordered · ${back} ${back === 1 ? "result" : "results"} back` : "Nothing ordered yet",
+      cats.map((c) =>
         h(
           "div.group",
           h("h3", c[0]!.toUpperCase() + c.slice(1)),
@@ -302,15 +365,21 @@ export async function playerScreen(
               const res = results.get(t.id);
               return h(
                 "div.item",
-                { class: ordered ? "item done" : "item" },
-                h("span", t.label),
-                !ordered ? h("button.small", { on: { click: () => order(t.id) } }, "Order") : !ready ? h("small", `Result in ${fmtTime(readyAt - rt.now)}`) : res ? resultView(res) : h("small", "Fetching result…"),
+                { class: ordered ? (ready && res ? "item done has-result" : "item done") : "item" },
+                h("span.item-label", t.label),
+                !ordered
+                  ? h("button.small.order", { on: { click: () => order(t.id) } }, "Order")
+                  : !ready
+                    ? h("small.pill.pending", icon("clock", 15), `Result in ${fmtTime(readyAt - rt.now)}`)
+                    : res
+                      ? resultView(res)
+                      : h("small.pill.pending", "Fetching result…"),
               );
             }),
           ),
         ),
       ),
-    );
+    ] as const;
   };
   const resultView = (r: { text: string; values?: { name: string; value: string; unit?: string; flag?: string }[]; image?: string; ecg?: string }) =>
     h(
@@ -358,27 +427,27 @@ export async function playerScreen(
       ["procedure", "Procedures"],
       ["referral", "Referral and disposition"],
     ];
-    return h(
-      "div",
-      h("h2", "Management"),
-      ...kinds.map(([k, label]) =>
+    return [
+      given.size ? `${plural(given.size, "action")} given` : "Each choice asks you to confirm",
+      kinds.map(([k, label]) =>
         h(
           "div.group",
           h("h3", label),
-          h("div.list.compact", ...ACTIONS.filter((a) => a.kind === k).map((a) => h("button.item", { class: given.has(a.id) ? "item done" : "item", on: { click: () => confirmGive(a.id) } }, h("span", a.label), a.dose ? h("small", a.dose) : null))),
+          h("div.list.compact", ...ACTIONS.filter((a) => a.kind === k).map((a) => h("button.item", { class: given.has(a.id) ? "item done" : "item", on: { click: () => confirmGive(a.id) } }, h("span.item-label", a.label), a.dose ? h("small.dose", a.dose) : null, given.has(a.id) ? doneMark() : null))),
         ),
       ),
-    );
+    ] as const;
   };
   const confirmGive = (id: string) => {
     const a = ACTIONS.find((x) => x.id === id)!;
     const close = modal(
       h(
         "div",
+        h("p.eyebrow", icon("manage", 18), "Confirm order"),
         h("h2", `${a.kind === "referral" ? "Confirm" : "Give"} ${a.label}?`),
-        a.dose ? h("p", a.dose) : null,
+        a.dose ? h("p.dose-line", a.dose) : null,
         h(
-          "div.row",
+          "div.row.end",
           h("button.primary.big", { on: { click: () => (close(), give(id)) } }, "Confirm"),
           h("button.big", { on: { click: () => close() } }, "Cancel"),
         ),
@@ -402,25 +471,26 @@ export async function playerScreen(
     diffs = lastDx.payload.differentials ?? [];
   }
   const diagnosisPanel = () =>
-    h(
-      "div",
-      h("h2", "Diagnosis"),
+    [
+      rt.has("diagnosis.submit") ? "Committed — you can still update it" : "Not committed yet",
+      [
       h("h3", "Main diagnosis"),
       h(
         "div.list.compact",
         { role: "radiogroup" },
-        ...sc.diagnosis.options.map((o) => h("button.item", { class: mainDx === o.id ? "item active" : "item", role: "radio", "aria-checked": mainDx === o.id, on: { click: () => ((mainDx = o.id), (diffs = diffs.filter((d) => d !== o.id)), renderPanel()) } }, o.label)),
+        ...sc.diagnosis.options.map((o) => h("button.item.choice", { class: mainDx === o.id ? "item choice active" : "item choice", role: "radio", "aria-checked": mainDx === o.id, on: { click: () => ((mainDx = o.id), (diffs = diffs.filter((d) => d !== o.id)), renderPanel()) } }, indicator("radio"), h("span.item-label", o.label))),
       ),
       h("h3", `Differentials (up to ${sc.diagnosis.maxDifferentials})`),
       h(
         "div.list.compact",
+        { role: "group", "aria-label": "Differentials" },
         ...sc.diagnosis.options
           .filter((o) => o.id !== mainDx)
           .map((o) =>
             h(
               "button.item",
               {
-                class: diffs.includes(o.id) ? "item active" : "item",
+                class: diffs.includes(o.id) ? "item choice active" : "item choice",
                 "aria-pressed": diffs.includes(o.id),
                 on: {
                   click: () => {
@@ -429,12 +499,13 @@ export async function playerScreen(
                   },
                 },
               },
-              o.label,
+              indicator("check"),
+              h("span.item-label", o.label),
             ),
           ),
       ),
       h(
-        "button.primary.big",
+        "button.primary.big.wide",
         {
           disabled: !mainDx,
           on: {
@@ -447,7 +518,8 @@ export async function playerScreen(
         },
         lastDx || rt.has("diagnosis.submit") ? "Update diagnosis" : "Commit diagnosis",
       ),
-    );
+      ],
+    ] as const;
 
   // ---- Checkpoint questions -----------------------------------------------------------------
   /** Opens the next due question; returns true when none is due. Pauses the case while open. */
@@ -462,25 +534,26 @@ export async function playerScreen(
     const body = h("div");
     const render = () =>
       body.replaceChildren(
-        h("p.muted", "Checkpoint question — the case is paused"),
+        h("p.eyebrow", icon("pause", 18), "Checkpoint question — the case is paused"),
         h("h2", q.prompt),
         multi ? h("p.muted", "Select all that apply") : "",
         h(
-          "div.list",
+          "div.list.options",
           ...q.options.map((o) =>
             h(
               "button.item",
               {
-                class: selected.includes(o.id) ? "item active" : "item",
+                class: selected.includes(o.id) ? "item choice active" : "item choice",
                 "aria-pressed": selected.includes(o.id),
                 on: { click: () => ((selected = multi ? (selected.includes(o.id) ? selected.filter((s) => s !== o.id) : [...selected, o.id]) : [o.id]), render()) },
               },
-              o.label,
+              indicator(multi ? "check" : "radio"),
+              h("span.item-label", o.label),
             ),
           ),
         ),
         h(
-          "button.primary.big",
+          "button.primary.big.wide",
           {
             disabled: !selected.length,
             on: {
@@ -544,7 +617,7 @@ export async function playerScreen(
     sessionStatus = status;
     if (status === "paused" && !pausedClose) {
       rt.clock.pause();
-      pausedClose = modal(h("div", h("h2", "Paused by your instructor"), h("p", "The case timer is stopped. Please wait.")), { label: "Paused" });
+      pausedClose = modal(h("div.center-text", h("span.big-icon", icon("pause", 34)), h("h2", "Paused by your instructor"), h("p.muted", "The case timer is stopped. Please wait.")), { label: "Paused" });
     } else if (status === "open" && pausedClose) {
       pausedClose();
       pausedClose = null;
@@ -570,21 +643,27 @@ export async function playerScreen(
       if (!seenMessages.has(m)) {
         seenMessages.add(m);
         toast(m, "warn", 8000);
-        caption.replaceChildren(h("strong", "Nurse: "), m);
+        setCaption("Nurse", m);
       }
     const x = v.values;
+    // Monitor colours: HR green, BP red, RR yellow, SpO₂ cyan, temperature white.
+    const vital = (cls: string, label: string, value: string, unit: string, alarm = false) =>
+      h("span", { class: `vital ${cls}${alarm ? " alarm" : ""}` }, h("small", label), " ", h("b", value), unit ? h("small.unit", unit) : null);
     vitalsEl.replaceChildren(
-      h("span", { class: x.hr > 120 || x.hr < 50 ? "alarm" : "" }, `HR ${x.hr}`),
-      h("span", { class: x.sbp < 90 ? "alarm" : "" }, `BP ${x.sbp}/${x.dbp}`),
-      h("span", { class: x.rr > 24 ? "alarm" : "" }, `RR ${x.rr}`),
-      h("span", { class: x.spo2 < 92 ? "alarm" : "" }, `SpO₂ ${x.spo2}%`),
-      h("span", `T ${x.temp.toFixed(1)}`),
+      vital("hr", "HR", String(x.hr), "", x.hr > 120 || x.hr < 50),
+      vital("bp", "BP", `${x.sbp}/${x.dbp}`, "", x.sbp < 90),
+      vital("rr", "RR", String(x.rr), "", x.rr > 24),
+      vital("spo2", "SpO₂", String(x.spo2), "%", x.spo2 < 92),
+      vital("temp", "T", x.temp.toFixed(1), "°C", x.temp >= 38.5 || x.temp < 35),
     );
-    timer.textContent = `${fmtTime(rt.now)} / ${fmtTime(sc.metadata.timeLimitMin * 60_000)}`;
-    timer.classList.toggle("alarm", rt.timeLeftMs < 2 * 60_000);
+    const limit = sc.metadata.timeLimitMin * 60_000;
+    timer.textContent = `${fmtTime(rt.now)} / ${fmtTime(limit)}`;
+    timeFill.style.width = `${Math.min(100, (rt.now / limit) * 100)}%`;
+    timer.parentElement!.classList.toggle("alarm", rt.timeLeftMs < 2 * 60_000);
+    updateBadges();
     const st = ctx.mode === "mouse" ? "Mouse" : ctx.hand.status === "tracking" ? "Hand tracking" : ctx.hand.status === "no-hand" ? "Hand not visible" : ctx.hand.status === "poor-light" ? "Lighting too poor" : "Starting camera";
     trackChip.textContent = st;
-    trackChip.className = `chip ${ctx.mode === "hand" && ctx.hand.status !== "tracking" ? "warn" : ""}`;
+    trackChip.className = `chip ${ctx.mode === "hand" ? (ctx.hand.status !== "tracking" ? "warn" : "ok") : ""}`;
     if (rt.started && rt.clock.running) askCheckpoints();
     // Refresh result countdowns occasionally; frequent re-renders would disturb hand hover.
     if (panel === "investigations" && Date.now() - lastInvRender > 5000 && rt.investigations().some((s) => !s.ready)) {
@@ -601,7 +680,7 @@ export async function playerScreen(
   const resultsLoop = setInterval(() => void fetchReadyResults(), 2000);
   recorder.onStatus = (online, pending) => {
     syncChip.textContent = online ? (pending ? `Saving (${pending})` : "Saved") : recorder.conflict ? "Open in another tab — close the other tab" : `Offline — ${pending} saved on this PC`;
-    syncChip.className = `chip ${online ? "" : "warn"}`;
+    syncChip.className = `chip ${online ? (pending ? "busy" : "ok") : "warn"}`;
   };
   recorder.start();
   void recorder.flush();
@@ -612,12 +691,16 @@ export async function playerScreen(
     const close = modal(
       h(
         "div",
-        h("p.muted", "Handover"),
+        h("p.eyebrow", icon("user", 18), "Handover"),
         h("h2", sc.patient.handover),
-        h("p", `${sc.patient.name}, ${sc.patient.age} · ${sc.patient.chiefComplaint}`),
+        h("div.patient-card", h("span.avatar", { "aria-hidden": "true" }, sc.patient.name.charAt(0)), h("div", h("strong", sc.patient.name), h("p", `${sc.patient.age} · ${sc.patient.chiefComplaint}`))),
+        h(
+          "ol.steps",
+          ...PANELS.map((p) => h("li", icon(p.icon, 20), h("span", p.title))),
+        ),
         h("p.muted", `Time limit ${sc.metadata.timeLimitMin} minutes. Take a history, examine, order tests, then commit a diagnosis and plan.`),
         h(
-          "button.primary.big",
+          "button.primary.big.wide",
           {
             on: {
               click: () => {
@@ -644,9 +727,11 @@ export async function playerScreen(
     const close = modal(
       h(
         "div",
+        h("p.eyebrow", icon("finish", 18), "Finish"),
         h("h2", "Finish the case?"),
-        rt.has("diagnosis.submit") ? "" : h("p.warn", "You have not committed a diagnosis yet."),
-        h("div.row", h("button.primary.big", { on: { click: () => (close(), void finishCase(false)) } }, "Finish and see results"), h("button.big", { on: { click: () => close() } }, "Keep going")),
+        h("p.muted", "Your score is calculated from the actions you took. You cannot return to the case afterwards."),
+        rt.has("diagnosis.submit") ? "" : h("p.callout.warn", icon("alert", 20), h("span", "You have not committed a diagnosis yet.")),
+        h("div.row.end", h("button.primary.big", { on: { click: () => (close(), void finishCase(false)) } }, "Finish and see results"), h("button.big", { on: { click: () => close() } }, "Keep going")),
       ),
       { onClose: () => (closeTop = null), label: "Finish case" },
     );

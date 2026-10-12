@@ -1,6 +1,6 @@
 import { api, auth, ApiError } from "../api.js";
 import type { Ctx, User } from "../context.js";
-import { h, mount } from "../ui.js";
+import { h, icon, mount } from "../ui.js";
 
 /** @param allowStaff tools that staff may use too (lab check, tracking test). */
 export function loginScreen(ctx: Ctx, next: () => void, allowStaff = false): void {
@@ -30,12 +30,12 @@ export function loginScreen(ctx: Ctx, next: () => void, allowStaff = false): voi
         },
       },
     },
-    h("h1", "Clinical Simulation"),
+    h("div.brand", h("span.brand-mark", icon("heart", 28)), h("div", h("h1", "Clinical Simulation"), h("p.muted", "Sign in with your university account"))),
     h("label", "Username", username),
     h("label", "Password", password),
-    h("button.primary", { type: "submit" }, "Sign in"),
+    h("button.primary.big.wide", { type: "submit" }, "Sign in"),
     err,
-    h("p.muted", h("a", { href: "?labcheck=1" }, "Lab check for this seat"), " · ", h("a", { href: "?trackingtest=1" }, "Hand-tracking test")),
+    h("p.muted.tools", h("a", { href: "?labcheck=1" }, "Lab check for this seat"), " · ", h("a", { href: "?trackingtest=1" }, "Hand-tracking test")),
   );
   mount(h("main.center", form));
   username.focus();

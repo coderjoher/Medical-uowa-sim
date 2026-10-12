@@ -4,11 +4,15 @@ import { expect, test } from "@playwright/test";
 test.skip(!process.env.SCREENSHOTS, "set SCREENSHOTS=1 to capture");
 test("capture scene screenshots", async ({ page }) => {
   await page.goto("/");
+  await page.screenshot({ path: "docs/screenshots/sign-in.png" });
   await page.getByLabel("Username").fill("student1");
   await page.getByLabel("Password").fill("demo-pass-123");
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.getByRole("button", { name: /Start|Resume|Try again/ }).first().click();
   await page.getByRole("button", { name: "Use the mouse" }).click();
+  await expect(page.getByRole("button", { name: "Begin" })).toBeVisible({ timeout: 30_000 });
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: "docs/screenshots/handover.png" });
   await page.getByRole("button", { name: "Begin" }).click();
   await page.waitForTimeout(2500);
   await page.screenshot({ path: "docs/screenshots/overview.png" });
@@ -25,6 +29,21 @@ test("capture scene screenshots", async ({ page }) => {
   await page.waitForTimeout(1500);
   await page.screenshot({ path: "docs/screenshots/exam-head.png" });
   await expect(page.locator(".vitals")).toBeVisible();
+  await page.locator(".menubar").getByRole("button", { name: "Manage" }).click();
+  await page.locator(".panel").getByRole("button", { name: /^Oxygen/ }).first().click();
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: "docs/screenshots/manage-confirm.png" });
+  await page.locator("[data-modal]").getByRole("button", { name: "Cancel" }).click();
+  await page.locator(".menubar").getByRole("button", { name: "Diagnosis" }).click();
+  const dlg = page.getByRole("dialog", { name: "Checkpoint question" });
+  if (await dlg.isVisible().catch(() => false)) {
+    await dlg.getByRole("button").first().click();
+    await dlg.getByRole("button", { name: "Submit answer" }).click();
+  }
+  await page.locator(".panel [role=radiogroup]").getByRole("radio").first().click();
+  await page.locator(".panel").getByRole("button", { name: /pericarditis/i }).first().click();
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: "docs/screenshots/diagnosis.png" });
 });
 
 async function startOrResume(p: import("@playwright/test").Page) {
@@ -73,7 +92,8 @@ test("capture debrief and dashboard screenshots", async ({ page, browser }) => {
   await page.screenshot({ path: "docs/screenshots/history.png" });
   await page.locator(".menubar").getByRole("button", { name: "Tests" }).click();
   await page.locator(".panel .item", { hasText: "12-lead ECG" }).getByRole("button", { name: "Order" }).click();
-  await page.waitForTimeout(500);
+  await expect(page.getByRole("dialog", { name: "Checkpoint question" })).toBeVisible({ timeout: 10_000 });
+  await page.waitForTimeout(400);
   await page.screenshot({ path: "docs/screenshots/checkpoint-question.png" });
   await page.getByRole("dialog", { name: "Checkpoint question" }).getByRole("button", { name: "Right coronary artery" }).click();
   await page.getByRole("button", { name: "Submit answer" }).click();

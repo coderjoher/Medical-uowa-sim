@@ -71,7 +71,14 @@ export function App() {
   return (
     <div className="layout">
       <header>
-        <strong>Simulation dashboard</strong>
+        <span className="brand">
+          <span className="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20s-8-4.9-8-10.6A4.4 4.4 0 0 1 12 6.6a4.4 4.4 0 0 1 8 2.8C20 15.1 12 20 12 20z" />
+            </svg>
+          </span>
+          <strong>Simulation dashboard</strong>
+        </span>
         <nav>
           {nav.map((n) => (
             <a key={n.page} href={`#/${n.page}`} className={current.page === n.page || (current.page === "session" && n.page === "sessions") ? "active" : ""}>
