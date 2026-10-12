@@ -30,7 +30,7 @@ export function loginScreen(ctx: Ctx, next: () => void, allowStaff = false): voi
         },
       },
     },
-    h("div.brand", h("span.brand-mark", icon("heart", 28)), h("div", h("h1", "Clinical Simulation"), h("p.muted", "Sign in with your university account"))),
+    h("div.brand", h("span.brand-mark", icon("heart", 28)), h("div", h("h1", "UOWA Medical Simulation"), h("p.muted", "Sign in with your university account"))),
     h("label", "Username", username),
     h("label", "Password", password),
     h("button.primary.big.wide", { type: "submit" }, "Sign in"),

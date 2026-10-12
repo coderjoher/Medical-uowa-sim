@@ -1,4 +1,4 @@
-# Medical Simulation — Stage 1
+# UOWA Medical Simulation — Stage 1
 
 A browser-based 3D clinical simulation. Medical students assess and manage a virtual patient
 using webcam hand tracking (or the mouse), and are scored on their decisions and on embedded

@@ -8,7 +8,7 @@ async function staffLogin(page: Page, user: string, pw = PW) {
   await page.getByLabel("Username").fill(user);
   await page.getByLabel("Password").fill(pw);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByText("Simulation dashboard")).toBeVisible();
+  await expect(page.getByText("Staff dashboard")).toBeVisible();
 }
 
 async function studentPage(browser: Browser, user: string): Promise<Page> {

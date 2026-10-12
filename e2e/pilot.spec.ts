@@ -11,7 +11,7 @@ async function signIn(page: Page, url: string, user: string, pw = PW) {
 
 async function staff(page: Page, user: string, pw = PW) {
   await signIn(page, "/staff/", user, pw);
-  await expect(page.getByText("Simulation dashboard")).toBeVisible();
+  await expect(page.getByText("Staff dashboard")).toBeVisible();
 }
 
 const hold = (page: Page, pose: string | null, x: number, y: number, ms: number) =>

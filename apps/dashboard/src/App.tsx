@@ -77,7 +77,10 @@ export function App() {
               <path d="M12 20s-8-4.9-8-10.6A4.4 4.4 0 0 1 12 6.6a4.4 4.4 0 0 1 8 2.8C20 15.1 12 20 12 20z" />
             </svg>
           </span>
-          <strong>Simulation dashboard</strong>
+          <span className="brand-text">
+            <strong>UOWA Medical Simulation</strong>
+            <span className="muted small">Staff dashboard</span>
+          </span>
         </span>
         <nav>
           {nav.map((n) => (

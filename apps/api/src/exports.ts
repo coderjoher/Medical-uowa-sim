@@ -22,7 +22,7 @@ const AREAS = ["history", "examination", "investigations", "diagnosis", "managem
 /** Results workbook: one sheet per student attempt row, cohort summary, and most-missed items. */
 export async function resultsXlsx(r: ResultsExport): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Clinical Simulation";
+  wb.creator = "UOWA Medical Simulation";
   const students = wb.addWorksheet("Students");
   students.columns = [
     { header: "Student", key: "student", width: 24 },

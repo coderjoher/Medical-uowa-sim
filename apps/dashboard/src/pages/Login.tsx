@@ -22,7 +22,8 @@ export function Login({ onLogin }: { onLogin: (m: Me) => void }) {
           }
         }}
       >
-        <h1>Simulation dashboard</h1>
+        <h1>UOWA Medical Simulation</h1>
+        <p className="muted">Staff sign in</p>
         <label>
           Username
           <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required />

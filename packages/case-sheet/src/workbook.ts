@@ -138,7 +138,7 @@ const INSTRUCTIONS = [
 /** A workbook for `c`, or the blank template when `c` is undefined. */
 export function caseToWorkbook(c?: CaseDefinition): ExcelJS.Workbook {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Clinical Simulation";
+  wb.creator = "UOWA Medical Simulation";
   const intro = wb.addWorksheet("Instructions");
   INSTRUCTIONS.forEach((line, i) => {
     const cell = intro.getCell(i + 1, 1);

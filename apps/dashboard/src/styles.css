@@ -124,3 +124,4 @@ td.actions { display: flex; gap: 6px; flex-wrap: wrap; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+.brand-text { display: flex; flex-direction: column; line-height: 1.2; }
