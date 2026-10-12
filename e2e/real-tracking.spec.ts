@@ -24,8 +24,9 @@ test("real hand tracking loads and runs under the content security policy", asyn
   await page.getByRole("button", { name: "Continue" }).click();
 
   await expect(page.getByRole("row", { name: /Camera/ })).toContainText("✓ Working", { timeout: 60_000 });
-  // Frames are flowing through the worker: the tracking frame rate becomes non-zero.
-  await expect(page.getByRole("row", { name: /Tracking frame rate/ })).not.toContainText(/ 0 fps/, { timeout: 30_000 });
+  // Frames are flowing through the worker: the tracking frame rate becomes non-zero. Without a
+  // GPU the 3D room and the patient model load on the same CPU first, so allow a minute.
+  await expect(page.getByRole("row", { name: /Tracking frame rate/ })).not.toContainText(/ 0 fps/, { timeout: 60_000 });
   await expect(page.getByRole("row", { name: /3D frame rate/ })).toContainText("fps", { timeout: 30_000 });
   expect(problems).toEqual([]);
 });

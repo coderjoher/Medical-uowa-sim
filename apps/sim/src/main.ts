@@ -7,7 +7,6 @@ import { consentScreen } from "./screens/consent.js";
 import { debriefScreen, type Debrief } from "./screens/debrief.js";
 import { labCheckScreen } from "./screens/labcheck.js";
 import { pickSeat } from "./screens/seat-picker.js";
-import { trackingTestScreen } from "./screens/tracking-test.js";
 import { loginScreen } from "./screens/login.js";
 import { playerScreen } from "./screens/player.js";
 import { sessionsScreen } from "./screens/sessions.js";
@@ -117,7 +116,28 @@ function showError(e: unknown) {
     auth.token = null;
     return loginScreen(ctx, () => void home());
   }
+  if (e instanceof ApiError && e.status === 403 && ctx.user && ctx.user.role !== "student") return staffScreen(ctx.user);
   mount(h("main.center", h("div.card.narrow", h("h1", "Something went wrong"), h("p", e instanceof Error ? e.message : String(e)), h("button.primary.big", { on: { click: () => location.reload() } }, "Reload"))));
+}
+
+/** A staff account on the student page: point to the dashboard instead of failing. */
+function staffScreen(user: User) {
+  mount(
+    h(
+      "main.center",
+      h(
+        "div.card.narrow",
+        h("h1", "This page is for students"),
+        h("p", `You are signed in as ${user.displayName} (${user.role.replace("_", " ")}). Staff work in the dashboard.`),
+        h(
+          "div.row",
+          h("a.button.primary.big", { href: "/staff/" }, "Open the dashboard"),
+          h("a.button.big", { href: "/?labcheck=1" }, "Lab check for this seat"),
+          h("button.big", { on: { click: () => ((auth.token = null), location.assign("/")) } }, "Sign out"),
+        ),
+      ),
+    ),
+  );
 }
 
 /** Calibration is kept per attempt so a refresh does not ask for it again. */
@@ -157,27 +177,14 @@ async function tool(run: (seatId: string | null) => Promise<void>) {
   if (!auth.token) return loginScreen(ctx, () => void tool(run), true);
   try {
     ctx.user = await api<User>("GET", "/api/me");
-    await run(await pickSeat(params.get("trackingtest") ? "Hand-tracking test" : "Lab check"));
+    await run(await pickSeat("Lab check"));
   } catch (e) {
     showError(e);
   }
 }
 
-async function trackingTest(seatId: string | null) {
-  const choice = ctx.fakeHand ? "hand" : await new Promise<"hand" | "mouse">((resolve) => consentScreen(resolve));
-  if (choice === "mouse") return home();
-  await startInput("hand");
-  if (ctx.mode !== "hand") {
-    mount(h("main.center", h("div.card.narrow", h("h1", "Hand tracking is not available"), h("p", "The camera could not start or calibration was cancelled."), h("a", { href: "?trackingtest=1" }, "Try again"))));
-    return;
-  }
-  const n = (k: string, d: number) => Math.max(1, Number(params.get(k)) || d);
-  await trackingTestScreen(ctx, { targets: n("targets", 30), restSeconds: n("rest", 60), seatId });
-}
-
 async function boot() {
   if (params.get("labcheck") === "1") return tool((seatId) => labCheckScreen(ctx, seatId));
-  if (params.get("trackingtest") === "1") return tool(trackingTest);
   const previewSpec = params.get("preview");
   if (previewSpec) {
     // Token handed over by the dashboard in the URL fragment; remove it from the address bar.
@@ -196,6 +203,8 @@ async function boot() {
   } catch (e) {
     return showError(e);
   }
+  // Staff signed in on this PC (for example after a lab check): this page is for students.
+  if (ctx.user.role !== "student") return staffScreen(ctx.user);
   // Resume an attempt interrupted by a refresh or crash.
   const current = store.get<{ attemptId: string; mode: "hand" | "mouse" | null }>("sim.current");
   if (current) {

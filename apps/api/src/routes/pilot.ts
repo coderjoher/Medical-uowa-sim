@@ -17,22 +17,6 @@ const LabCheck = z.object({
   details: z.record(z.unknown()).optional(),
 });
 
-const TrackingTest = z.object({
-  seatId: z.string().uuid().optional(),
-  durationMs: z.number().int().min(1000).max(3_600_000),
-  targets: z.number().int().min(1).max(1000),
-  detected: z.number().int().min(0),
-  falseClicks: z.number().int().min(0),
-  restMs: z.number().int().min(0),
-  handLost: z.number().int().min(0),
-  recoveryMs: z.array(z.number().int().min(0)).max(1000),
-  trackingFps: z.number().min(0).max(1000).optional(),
-  renderFps: z.number().min(0).max(1000).optional(),
-  pipelineP95Ms: z.number().min(0).max(10_000).optional(),
-  feltReliable: z.boolean().optional(),
-  details: z.record(z.unknown()).optional(),
-});
-
 const rating = z.number().int().min(1).max(5);
 const Survey = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("student_case"), attemptId: z.string().uuid(), answers: z.object({ trackingReliable: z.boolean().optional(), usedHand: z.boolean(), useful: rating, comment: z.string().max(2000).optional() }) }),
@@ -43,13 +27,8 @@ const Survey = z.discriminatedUnion("kind", [
 const Review = z.object({ agrees: z.boolean(), comment: z.string().max(2000).optional() });
 
 const pct = (n: number, d: number) => (d ? Math.round((n / d) * 1000) / 10 : null);
-const quantile = (xs: number[], q: number) => {
-  if (!xs.length) return null;
-  const s = [...xs].sort((a, b) => a - b);
-  return s[Math.min(s.length - 1, Math.floor(q * s.length))]!;
-};
 
-/** PRD success metrics and tracking targets, each with its target and whether it is met. */
+/** PRD success metrics, each with its target and whether it is met. */
 export interface Metric {
   key: string;
   label: string;
@@ -90,29 +69,6 @@ export async function pilotRoutes(app: FastifyInstance) {
     return rows.map((r) => ({ ...r, trackingFps: r.trackingFps === null ? null : Number(r.trackingFps), renderFps: r.renderFps === null ? null : Number(r.renderFps), lightLevel: r.lightLevel === null ? null : Number(r.lightLevel) }));
   });
 
-  // ---- Hand-tracking test (prototype go/no-go) -------------------------------------------------
-  app.post("/api/tracking-tests", signedIn, async (req, reply) => {
-    const b = TrackingTest.parse(req.body);
-    if (b.detected > b.targets) throw badRequest("detected cannot exceed targets");
-    const { rows } = await app.db.query(
-      `INSERT INTO tracking_tests (user_id, seat_id, duration_ms, targets, detected, false_clicks, rest_ms, hand_lost, recovery_ms, tracking_fps, render_fps, pipeline_p95_ms, felt_reliable, details)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
-      [req.user.id, b.seatId ?? null, b.durationMs, b.targets, b.detected, b.falseClicks, b.restMs, b.handLost, b.recoveryMs, b.trackingFps ?? null, b.renderFps ?? null, b.pipelineP95Ms ?? null, b.feltReliable ?? null, b.details ?? null],
-    );
-    return reply.code(201).send({ id: rows[0].id });
-  });
-
-  app.get("/api/admin/tracking-tests", staff, async () => {
-    const { rows } = await app.db.query(
-      `SELECT t.id, u.display_name AS "user", s.label AS seat, t.created_at AS "createdAt", t.duration_ms AS "durationMs", t.targets, t.detected,
-              t.false_clicks AS "falseClicks", t.rest_ms AS "restMs", t.hand_lost AS "handLost", t.recovery_ms AS "recoveryMs",
-              t.tracking_fps::float AS "trackingFps", t.render_fps::float AS "renderFps", t.pipeline_p95_ms::float AS "pipelineP95Ms", t.felt_reliable AS "feltReliable"
-       FROM tracking_tests t JOIN users u ON u.id = t.user_id LEFT JOIN seats s ON s.id = t.seat_id ORDER BY t.created_at DESC`,
-    );
-    return { runs: rows, metrics: trackingMetrics(rows) };
-  });
-
-  // ---- Surveys --------------------------------------------------------------------------------
   app.post("/api/surveys", signedIn, async (req, reply) => {
     const b = Survey.parse(req.body);
     const role = req.user.role;
@@ -208,7 +164,6 @@ export async function pilotRoutes(app: FastifyInstance) {
       ws.getRow(1).font = { bold: true };
     };
     sheet("Success metrics", r.success);
-    sheet("Hand tracking", r.tracking);
     const c = wb.addWorksheet("Comments");
     c.columns = [{ header: "Comment", key: "c", width: 120 }];
     r.comments.forEach((x) => c.addRow({ c: x }));
@@ -217,44 +172,6 @@ export async function pilotRoutes(app: FastifyInstance) {
       .header("content-disposition", 'attachment; filename="pilot-report.xlsx"')
       .send(Buffer.from(await wb.xlsx.writeBuffer()));
   });
-}
-
-export function trackingMetrics(rows: { durationMs: number; targets: number; detected: number; falseClicks: number; restMs: number; handLost: number; recoveryMs: number[]; trackingFps: number | null; pipelineP95Ms: number | null; feltReliable: boolean | null }[]): Metric[] {
-  const sum = (f: (r: (typeof rows)[number]) => number) => rows.reduce((s, r) => s + f(r), 0);
-  const targets = sum((r) => r.targets);
-  const detected = sum((r) => r.detected);
-  const restMin5 = sum((r) => r.restMs) / 300_000;
-  const durMin5 = sum((r) => r.durationMs) / 300_000;
-  const recoveries = rows.flatMap((r) => r.recoveryMs);
-  const fps = rows.map((r) => r.trackingFps).filter((x): x is number => x !== null);
-  const lat = rows.map((r) => r.pipelineP95Ms).filter((x): x is number => x !== null);
-  const felt = rows.filter((r) => r.feltReliable !== null);
-  const v = (x: number | null) => (x === null ? null : Math.round(x * 100) / 100);
-  const n = `${rows.length} test run(s)`;
-  const perFive = (x: number, d: number) => (d > 0 ? x / d : null);
-  const falsePer5 = perFive(sum((r) => r.falseClicks), restMin5);
-  const lostPer5 = perFive(sum((r) => r.handLost), durMin5);
-  const rec95 = quantile(recoveries, 0.95);
-  const fpsMed = quantile(fps, 0.5);
-  const latMedian = quantile(lat, 0.5);
-  const reliable = pct(felt.filter((r) => r.feltReliable).length, felt.length);
-  return [
-    { key: "pinchDetected", label: "Intended pinches detected", value: pct(detected, targets), unit: "%", target: "≥ 95%", met: targets ? detected / targets >= 0.95 : null, basis: `${detected}/${targets} targets, ${n}` },
-    { key: "falseClicks", label: "Unintended pinches (false clicks)", value: v(falsePer5), unit: "per 5 min", target: "≤ 1 per 5 min", met: falsePer5 === null ? null : falsePer5 <= 1, basis: `during ${(sum((r) => r.restMs) / 60000).toFixed(1)} min of pointing without pinching` },
-    { key: "handLost", label: "Hand lost during use", value: v(lostPer5), unit: "per 5 min", target: "≤ 1 per 5 min", met: lostPer5 === null ? null : lostPer5 <= 1, basis: `${sum((r) => r.handLost)} losses in ${(sum((r) => r.durationMs) / 60000).toFixed(1)} min` },
-    { key: "recovery", label: "Recovery after hand lost (p95)", value: rec95, unit: "ms", target: "< 1000 ms", met: rec95 === null ? (recoveries.length ? null : true) : rec95 < 1000, basis: `${recoveries.length} recoveries` },
-    { key: "trackingFps", label: "Tracking frame rate (median of runs)", value: v(fpsMed), unit: "fps", target: "≥ 30 fps", met: fpsMed === null ? null : fpsMed >= 30, basis: n },
-    {
-      key: "pipelineLatency",
-      label: "Tracking pipeline latency (median of run p95s)",
-      value: v(latMedian),
-      unit: "ms",
-      target: "≤ 100 ms end to end",
-      met: null,
-      basis: "frame capture → gesture processed; excludes camera exposure and display time, so confirm end-to-end latency with a high-speed camera",
-    },
-    { key: "feltReliable", label: "Testers who felt tracking was reliable", value: reliable, unit: "%", target: "≥ 80%", met: reliable === null ? null : reliable >= 80, basis: `${felt.length} answers` },
-  ];
 }
 
 export async function pilotReport(app: FastifyInstance, courseId: string | null) {
@@ -317,12 +234,6 @@ export async function pilotReport(app: FastifyInstance, courseId: string | null)
     },
   ];
 
-  const trackingRows = (
-    await app.db.query(
-      `SELECT duration_ms AS "durationMs", targets, detected, false_clicks AS "falseClicks", rest_ms AS "restMs", hand_lost AS "handLost", recovery_ms AS "recoveryMs",
-              tracking_fps::float AS "trackingFps", pipeline_p95_ms::float AS "pipelineP95Ms", felt_reliable AS "feltReliable" FROM tracking_tests`,
-    )
-  ).rows;
   const comments = surveys.map((s) => s.answers.comment).filter((c): c is string => typeof c === "string" && c.trim() !== "");
-  return { generatedAt: new Date().toISOString(), courseId, success, tracking: trackingMetrics(trackingRows), counts: { attempts: attempts.rows.length, finished: finished.length, surveys: surveys.length }, comments };
+  return { generatedAt: new Date().toISOString(), courseId, success, counts: { attempts: attempts.rows.length, finished: finished.length, surveys: surveys.length }, comments };
 }

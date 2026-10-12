@@ -22,14 +22,14 @@ real lab, real users or a sign-off, and some are partly built (see notes).
 | Phase | Built | Still open |
 |---|---|---|
 | 0 Foundations | Monorepo, TypeScript, lint, tests, CI (lint, typecheck, unit, LDAP, build, browser tests), Docker Compose (API + PostgreSQL + Caddy HTTPS + daily backups), production install checked locally | `docker compose up` on the real server, lab PC benchmark, open questions |
-| 1 Hand tracking | MediaPipe in a classic Web Worker (verified with a camera feed under the CSP), smoothing, pinch, holds, menu, swipe, calibration, snapping, lighting warning; **tracking test mode** (`/?trackingtest=1`) that measures pinch accuracy, false pinches, hand loss and latency and saves runs; tracking telemetry every minute during cases | Running the tests in the real lab and the go/no-go decision (`docs/pilot-runbook.md`) |
+| 1 Hand tracking | MediaPipe in a classic Web Worker (verified with a camera feed under the CSP), smoothing, pinch, holds, menu, swipe, calibration, snapping, lighting warning; tracking telemetry every minute during cases | Running the tests in the real lab and the go/no-go decision (`docs/pilot-runbook.md`) |
 | 2 Case model | Schema, libraries, validator (now also checks media files), spreadsheet template + import in the dashboard, authoring guide, 3 cases (2 marked DRAFT), placeholder heart/lung sounds, ECGs and X-rays served at `/media/` | Real licensed media; academics' cases and template sign-off |
 | 3 Backend | Local + **LDAP/AD** login, roles, courses, labs, seats, sessions, idempotent action log, answer-free student payload, live WebSocket, backups | University directory details; HTTPS on the real LAN |
 | 4 Room and player | Articraft models, animation, live monitor, all case steps, deterioration, captions, case media, data-driven test over all cases, scene loaded on demand (entry JS 38 KB gzip) | Frame rate and load time on lab PCs; model and sound review |
 | 5 Scoring | Rubric engine, critical errors, re-scoring, debrief, **score review** page for academics | Academics' agreement on sample attempts |
 | 6 Dashboard | Sessions, live seats, retry with reason, results, Excel/PDF, case library, user editing, **CSV roster import**, seat readiness, pilot report | — |
 | 7 Hardening | Offline buffering, crash and refresh resume, rate-limited login, CSP and security headers, security review, **load test of 60 and 240 students** | Lab check on every seat; university IT on backups/retention; penetration test |
-| 8-10 Pilots | Tools: lab check, tracking test, surveys, score review, pilot report with the PRD targets (Excel export), runbook | Running the alpha and pilots with real students and staff |
+| 8-10 Pilots | Tools: lab check, surveys, score review, pilot report with the PRD targets (Excel export), runbook | Running the alpha and pilots with real students and staff |
 
 | # | Phase | Weeks | Gate |
 |---|-------|-------|------|

@@ -35,7 +35,7 @@ export function loginScreen(ctx: Ctx, next: () => void, allowStaff = false): voi
     h("label", "Password", password),
     h("button.primary.big.wide", { type: "submit" }, "Sign in"),
     err,
-    h("p.muted.tools", h("a", { href: "?labcheck=1" }, "Lab check for this seat"), " · ", h("a", { href: "?trackingtest=1" }, "Hand-tracking test")),
+    h("p.muted.tools", h("a", { href: "?labcheck=1" }, "Lab check for this seat")),
   );
   mount(h("main.center", form));
   username.focus();

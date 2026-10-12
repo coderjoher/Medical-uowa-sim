@@ -55,9 +55,6 @@ Useful URLs on the student app:
 
 - `/?labcheck=1`: 2-minute seat check (camera, lighting, tracking and 3D frame rate, headphones),
   saved per seat and shown under **Seat readiness**.
-- `/?trackingtest=1`: hand-tracking test for the go/no-go: timed pinch targets and a rest period,
-  measuring detected and unintended pinches, hand loss and latency. Results go to the
-  **Pilot report**.
 - `/?preview=<caseId>:<version>`: author preview, opened from the case library.
 
 ## Tests

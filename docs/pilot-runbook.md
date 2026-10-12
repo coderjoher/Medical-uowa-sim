@@ -45,18 +45,14 @@ Repeat it in the morning and the afternoon at least once to find lighting proble
 
 Aim for at least 10 testers (staff and student volunteers), on at least 3 lab seats.
 
-1. Each tester signs in at `https://<SITE_ADDRESS>/?trackingtest=1` and picks the seat.
-2. They calibrate, then run the test. It has 30 timed pinch targets, then 60 s of
-   pointing without pinching, which counts unintended pinches (change with `&targets=` and
-   `&rest=`). The test also records hand losses,
-   recovery time, the tracking frame rate and pipeline latency.
-3. At the end they answer "Did tracking feel reliable?" and click **Save result**.
-4. Each tester also plays one case with hand tracking only. The session's minute-by-minute
-   telemetry is stored with the attempt.
-5. Measure end-to-end latency once per seat type. Film the hand and the screen together with a
+1. Each tester calibrates and plays one case with hand tracking only. The app stores tracking
+   telemetry (frame rate, hand losses, processing latency) with the attempt every minute.
+2. Observers count intended pinches that were missed and unintended ones, per tester.
+3. Measure end-to-end latency once per seat type. Film the hand and the screen together with a
    high-speed phone camera (240 fps), and count the frames from the pinch to the cursor change.
-   The pipeline figure on the report covers the browser processing only.
-6. Open **Pilot report → Hand-tracking test**. Each target shows *met / not met*:
+4. Testers answer the case survey ("Did tracking feel reliable?"). The **Pilot report** shows
+   the share who rated it reliable.
+5. Compare with the PRD targets:
 
    | Metric | Target |
    |---|---|
@@ -67,7 +63,7 @@ Aim for at least 10 testers (staff and student volunteers), on at least 3 lab se
    | Latency (high-speed camera) | ≤ 100 ms |
    | Testers who felt it reliable | ≥ 80 % |
 
-7. Record the go/no-go decision in `stage1-phases.md` (Phase 1). If the decision is no-go, the
+6. Record the go/no-go decision in `stage1-phases.md` (Phase 1). If the decision is no-go, the
    app keeps working mouse-only. Students pick **Use the mouse** on the start screen and nothing
    else changes.
 

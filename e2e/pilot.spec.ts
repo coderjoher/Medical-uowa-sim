@@ -17,34 +17,6 @@ async function staff(page: Page, user: string, pw = PW) {
 const hold = (page: Page, pose: string | null, x: number, y: number, ms: number) =>
   page.evaluate(([p, x, y, ms]) => (window as any).__sim.hold(p, x, y, ms), [pose, x, y, ms] as const);
 
-test("hand-tracking test measures pinches and saves the run", async ({ page, browser }) => {
-  await signIn(page, "/?trackingtest=1&fakeHand=1&targets=3&rest=2", "student1");
-  await page.getByLabel("Seat").selectOption({ label: "Sim Lab 1 · Seat 05" });
-  await page.getByRole("button", { name: "Continue" }).click();
-
-  for (let i = 0; i < 3; i++) {
-    const target = page.locator("#tt-target:not(.hit):not(.miss)");
-    await expect(target).toBeVisible();
-    const box = (await target.boundingBox())!;
-    const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
-    await hold(page, "point", x, y, 600);
-    await hold(page, "pinch", x, y, 300);
-    await hold(page, "point", x, y, 200);
-  }
-  await expect(page.getByRole("heading", { name: "Hand-tracking test result" })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole("row", { name: /Intended pinches detected/ })).toContainText("100% (3/3)");
-  await page.getByRole("button", { name: "Yes" }).click();
-  await page.getByRole("button", { name: "Save result" }).click();
-  await expect(page.getByText("Saved. Thank you.")).toBeVisible();
-
-  const admin = await (await browser.newContext()).newPage();
-  await staff(admin, "admin", "admin-pass-123");
-  await admin.getByRole("link", { name: "Pilot report" }).click();
-  const row = admin.getByRole("row", { name: /Intended pinches detected/ });
-  await expect(row).toContainText("100 %");
-  await expect(row).toContainText("met");
-});
-
 test("lab check saves a result per seat and the seat shows in readiness", async ({ page, browser }) => {
   await signIn(page, "/?labcheck=1&fakeHand=1", "instructor");
   await page.getByLabel("Seat").selectOption({ label: "Sim Lab 1 · Seat 06" });
@@ -127,4 +99,15 @@ test("case media are served on the LAN at /media", async ({ request }) => {
     const r = await request.get(path);
     expect(await r.text()).not.toContain('"workspaces"');
   }
+});
+
+test("staff signed in on a lab PC who open the student page are sent to the dashboard", async ({ page }) => {
+  await signIn(page, "/?labcheck=1&fakeHand=1", "admin", "admin-pass-123");
+  await expect(page.getByRole("heading", { name: "Lab check" })).toBeVisible();
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "This page is for students" })).toBeVisible();
+  await expect(page.getByText("Something went wrong")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Open the dashboard" })).toHaveAttribute("href", "/staff/");
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page.getByLabel("Username")).toBeVisible();
 });

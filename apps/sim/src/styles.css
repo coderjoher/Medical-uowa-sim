@@ -314,3 +314,9 @@ img.media-large { display: block; width: 100%; max-height: 75vh; object-fit: con
 .brand p { margin: 2px 0 0; }
 .brand-mark { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: #fff; box-shadow: 0 6px 16px rgb(14 138 140 / 0.35); flex: none; }
 .tools { margin: 16px 0 0; padding-top: 16px; border-top: 1px solid var(--line); font-size: 0.9rem; text-align: center; }
+
+/* Links styled as buttons (staff screen). */
+a.button { font: inherit; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: var(--radius-sm); padding: 14px 20px; min-height: 64px; text-decoration: none; font-weight: 600; }
+a.button:hover { background: var(--surface-3); }
+a.button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+a.button.primary:hover { background: var(--accent-strong); }

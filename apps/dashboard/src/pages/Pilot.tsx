@@ -15,7 +15,6 @@ interface Metric {
 interface Report {
   generatedAt: string;
   success: Metric[];
-  tracking: Metric[];
   counts: { attempts: number; finished: number; surveys: number };
   comments: string[];
 }
@@ -85,11 +84,6 @@ export function PilotPage({ me }: { me: Me }) {
             <p className="muted small">
               {report.counts.attempts} attempts · {report.counts.finished} finished by the student · {report.counts.surveys} survey answers. Generated {new Date(report.generatedAt).toLocaleString()}.
             </p>
-          </section>
-          <section className="card">
-            <h2>Hand tracking (prototype go/no-go)</h2>
-            <p className="muted">From hand-tracking test runs (student app → "Hand-tracking test").</p>
-            <MetricTable metrics={report.tracking} />
           </section>
           {report.comments.length > 0 && (
             <section className="card">

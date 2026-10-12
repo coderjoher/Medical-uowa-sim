@@ -46,25 +46,6 @@ describe("lab checks", () => {
   });
 });
 
-describe("tracking tests", () => {
-  it("computes the PRD tracking metrics across runs", async () => {
-    const run = { durationMs: 300_000, targets: 40, detected: 39, falseClicks: 1, restMs: 300_000, handLost: 1, recoveryMs: [400], trackingFps: 31, renderFps: 60, pipelineP95Ms: 48, feltReliable: true };
-    expect((await req("POST", "/api/tracking-tests", "alice", run)).statusCode).toBe(201);
-    expect((await req("POST", "/api/tracking-tests", "bob", { ...run, detected: 37, falseClicks: 3, handLost: 0, recoveryMs: [], feltReliable: false })).statusCode).toBe(201);
-    expect((await req("POST", "/api/tracking-tests", "bob", { ...run, detected: 41 })).statusCode).toBe(400);
-    const { runs, metrics } = (await req("GET", "/api/admin/tracking-tests", "instructor")).json();
-    expect(runs).toHaveLength(2);
-    const m = Object.fromEntries(metrics.map((x: { key: string }) => [x.key, x]));
-    expect(m.pinchDetected).toMatchObject({ value: 95, met: true }); // 76/80
-    expect(m.falseClicks).toMatchObject({ value: 2, met: false }); // 4 in 10 min
-    expect(m.handLost).toMatchObject({ value: 0.5, met: true });
-    expect(m.recovery).toMatchObject({ value: 400, met: true });
-    expect(m.trackingFps).toMatchObject({ value: 31, met: true });
-    expect(m.pipelineLatency.met).toBeNull(); // needs an external measurement
-    expect(m.feltReliable).toMatchObject({ value: 50, met: false });
-  });
-});
-
 describe("surveys", () => {
   it("accepts each survey once, from the right role, about your own attempt", async () => {
     const { sessionId, courseId } = await makeSession(w);
@@ -121,7 +102,6 @@ describe("pilot report", () => {
     expect(m.willing).toMatchObject({ value: 100, met: true });
     expect(m.scoreAgreement).toMatchObject({ value: 100, met: false }); // fewer than 20 attempts reviewed
     expect(r.comments).toEqual(["Loved the ECG"]);
-    expect(r.tracking.map((x: { key: string }) => x.key)).toContain("pinchDetected");
     expect((await req("GET", `/api/admin/pilot-report?courseId=${courseId}`, "alice")).statusCode).toBe(403);
     const xlsx = await req("GET", `/api/admin/pilot-report.xlsx?courseId=${courseId}`, "admin");
     expect(xlsx.statusCode).toBe(200);
