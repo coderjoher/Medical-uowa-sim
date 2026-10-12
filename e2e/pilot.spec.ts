@@ -106,6 +106,8 @@ test("surveys after a case and for the course feed the pilot report; academics r
   const author = await (await browser.newContext()).newPage();
   await staff(author, "author");
   await author.getByRole("link", { name: "Score review" }).click();
+  // Wait for the page to switch: the case library (the author's default page) also has "Case…" fields.
+  await expect(author.getByRole("heading", { name: "Score review" })).toBeVisible();
   await author.getByLabel("Case").selectOption({ label: "Chest pain in a 45-year-old man" });
   await author.getByRole("button", { name: "Review" }).first().click();
   await expect(author.getByRole("region", { name: "Attempt under review" })).toBeVisible();

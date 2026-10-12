@@ -32,12 +32,14 @@ test("full case with the mouse only, then the debrief", async ({ page }) => {
   const origins = new Set<string>();
   page.on("request", (r) => {
     if (!r.url().startsWith("data:") && !r.url().startsWith("blob:")) origins.add(new URL(r.url()).origin);
-    if (r.method() !== "GET") uploads.push({ url: r.url(), bytes: r.postDataBuffer()?.length ?? 0, type: r.headers()["content-type"] ?? "" });
+    // GET and HEAD carry no body (HEAD checks whether a drop-in patient model exists).
+    if (!["GET", "HEAD"].includes(r.method())) uploads.push({ url: r.url(), bytes: r.postDataBuffer()?.length ?? 0, type: r.headers()["content-type"] ?? "" });
   });
 
   await login(page);
   await startCase(page, "mouse");
-  await expect(page.getByRole("dialog", { name: "Case handover" })).toContainText("45-year-old man");
+  // The PRD allows 15 s for the first case to be ready (the patient model is the largest download).
+  await expect(page.getByRole("dialog", { name: "Case handover" })).toContainText("45-year-old man", { timeout: 15_000 });
   await page.getByRole("button", { name: "Begin" }).click();
   await expect(page.locator(".vitals")).toContainText("HR 98");
 

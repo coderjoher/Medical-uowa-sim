@@ -119,3 +119,8 @@ Academics write cases in the spreadsheet template — see the
 
 Generated with the [Articraft](https://github.com/articraftresearch/Articraft) SDK (Apache-2.0).
 See [`assets/models/README.md`](assets/models/README.md) to regenerate them.
+
+For realistic patients, drop a rigged human GLB into `apps/sim/public/models/humans/` — it
+replaces the built-in patient automatically. What to provide: [`assets/models/HUMANS.md`](assets/models/HUMANS.md).
+Lighting quality (shadows, ambient occlusion, reflections) adapts to the PC; add `?quality=low`
+to force the lighter mode on a slow seat.

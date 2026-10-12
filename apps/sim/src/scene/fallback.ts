@@ -1,6 +1,7 @@
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { type Mesh } from "@babylonjs/core/Meshes/mesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
@@ -17,6 +18,10 @@ export interface PatientRig {
   eyelids: TransformNode[];
   eyelidAxis: Vector3;
   anchors: Record<string, { node: TransformNode; local: Vector3 }>;
+  /** Rigged human models drive breathing, blinking and head movement through these instead. */
+  breathe?: (amount: number) => void;
+  blink?: (closed: number) => void;
+  headTurn?: (angle: number) => void;
 }
 
 const mat = (scene: Scene, name: string, c: [number, number, number]) => {
@@ -27,8 +32,9 @@ const mat = (scene: Scene, name: string, c: [number, number, number]) => {
 };
 
 /** Stylized primitive room used when the Articraft models are not available. */
-export function buildFallbackRoom(scene: Scene, need: { room: boolean; bed: boolean; monitor: boolean; tray: boolean }): { screen: Mesh | null } {
+export function buildFallbackRoom(scene: Scene, need: { room: boolean; bed: boolean; monitor: boolean; tray: boolean }): { screen: Mesh | null; meshes: AbstractMesh[] } {
   let screen: Mesh | null = null;
+  const before = new Set(scene.meshes);
   if (need.room) {
     const floor = MeshBuilder.CreateGround("floor", { width: 6, height: 5 }, scene);
     floor.material = mat(scene, "floor", [0.78, 0.8, 0.8]);
@@ -75,7 +81,7 @@ export function buildFallbackRoom(scene: Scene, need: { room: boolean; bed: bool
     legs.position.set(1.25, 0.45, 0.75);
     legs.material = top.material;
   }
-  return { screen };
+  return { screen, meshes: scene.meshes.filter((m) => !before.has(m)) };
 }
 
 const PROFILE: Record<PatientModel, { scale: number; skin: [number, number, number]; hair: [number, number, number]; gown: [number, number, number]; width: number }> = {

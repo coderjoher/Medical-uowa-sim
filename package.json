@@ -15,6 +15,7 @@
     "validate-cases": "tsx packages/shared/scripts/validate-cases.ts content/cases",
     "dev:api": "npm run dev -w @sim/api",
     "dev:sim": "npm run dev -w @sim/sim",
+    "screenshots": "SCREENSHOTS=1 playwright test e2e/screens.spec.ts",
     "test:e2e": "playwright test",
     "build": "npm run fetch-mediapipe -w @sim/sim && npm run build -w @sim/sim && npm run build -w @sim/dashboard",
     "case-templates": "tsx packages/case-sheet/scripts/make-templates.ts",

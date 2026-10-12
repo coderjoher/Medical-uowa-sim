@@ -1,7 +1,5 @@
 import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
 import { Engine } from "@babylonjs/core/Engines/engine";
-import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
-import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { ImportMeshAsync } from "@babylonjs/core/Loading/sceneLoader";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
@@ -17,6 +15,8 @@ import type { ExamTool } from "@sim/shared";
 import { EXAM_POINTS } from "@sim/shared";
 import type { Vitals } from "@sim/shared";
 import { buildFallbackPatient, buildFallbackRoom, type PatientRig } from "./fallback.js";
+import { loadHumanoid } from "./humanoid.js";
+import { Look, tuneMaterials } from "./look.js";
 import { MonitorFace } from "./monitor.js";
 
 const BLINK_S = 0.16;
@@ -67,6 +67,7 @@ export class SimScene {
   readonly engine: Engine;
   readonly scene: Scene;
   readonly camera: ArcRotateCamera;
+  readonly look: Look;
   private monitor!: MonitorFace;
   private patient!: PatientRig;
   private patientRoot!: TransformNode;
@@ -88,11 +89,7 @@ export class SimScene {
     this.camera = new ArcRotateCamera("cam", -Math.PI / 2, 1.05, 3.2, new Vector3(0, 0.85, 0), this.scene);
     this.camera.minZ = 0.05;
     this.camera.fov = 0.75;
-    const hemi = new HemisphericLight("hemi", new Vector3(0.2, 1, 0.1), this.scene);
-    hemi.intensity = 0.85;
-    hemi.groundColor = new Color3(0.55, 0.58, 0.62);
-    const sun = new DirectionalLight("key", new Vector3(-0.4, -1, 0.6), this.scene);
-    sun.intensity = 0.6;
+    this.look = new Look(this.scene, this.camera);
     addEventListener("resize", () => this.engine.resize());
   }
 
@@ -106,13 +103,11 @@ export class SimScene {
     this.markerHoverMat.emissiveColor = new Color3(1, 0.75, 0.1);
     this.markerHoverMat.diffuseColor = new Color3(1, 0.8, 0.2);
 
-    const [room, bed, monitor, tray, patient] = await Promise.all([
-      loadModel(scene, "room"),
-      loadModel(scene, "bed"),
-      loadModel(scene, "monitor"),
-      loadModel(scene, "tray"),
-      loadModel(scene, `patient_${model}`),
-    ]);
+    // A rigged human from /models/humans replaces the built-in patient when present.
+    // Everything downloads in parallel; the built-in patient is only fetched if there is no human model.
+    const humanLoad = loadHumanoid(scene, model).catch((e) => (console.warn("Human model failed to load", e), null));
+    const [room, bed, monitor, tray, human] = await Promise.all([loadModel(scene, "room"), loadModel(scene, "bed"), loadModel(scene, "monitor"), loadModel(scene, "tray"), humanLoad]);
+    const patient = human ? null : await loadModel(scene, `patient_${model}`);
     const fallback = buildFallbackRoom(scene, { room: !room, bed: !bed, monitor: !monitor, tray: !tray });
 
     // Babylon's glTF loader mirrors X when converting to its left-handed world, so the room's
@@ -151,7 +146,18 @@ export class SimScene {
     };
     const hipW = bedAnchor("patient_hip");
     const headW = bedAnchor("patient_head");
-    if (patient) {
+    if (human) {
+      this.patient = human.rig;
+      this.patientRoot = human.rig.root;
+      const pos = hipW ?? new Vector3(0, 0.72, 0);
+      this.patientRoot.position.copyFrom(pos.add(new Vector3(0, human.supportDepth, 0)));
+      if (hipW && headW) {
+        const want = headW.subtract(hipW);
+        const have = human.rig.headLocal;
+        const yaw = Math.atan2(want.z, want.x) - Math.atan2(have.z, have.x);
+        this.patientRoot.rotationQuaternion = Quaternion.RotationAxis(Vector3.Up(), -yaw);
+      }
+    } else if (patient) {
       this.patientRoot = patient.root;
       this.patient = this.rigFromModel(patient.root, patient.sidecar);
       if (hipW && headW) {
@@ -168,6 +174,15 @@ export class SimScene {
       this.patientRoot = this.patient.root;
       this.patientRoot.position.set(0, (hipW?.y ?? 0.72) + 0.02, 0);
     }
+    // Lighting and material response (see look.ts).
+    const meshesOf = (m: { root: TransformNode } | null) => (m ? m.root.getChildMeshes(false) : []);
+    if (room) tuneMaterials(meshesOf(room), "room");
+    if (bed) tuneMaterials(meshesOf(bed), "bed");
+    for (const m of [monitor, tray]) if (m) tuneMaterials(meshesOf(m), "equipment");
+    if (patient) tuneMaterials(meshesOf(patient), "patient");
+    this.look.casters([...meshesOf(bed), ...meshesOf(monitor), ...meshesOf(tray), ...this.patientRoot.getChildMeshes(false)]);
+    this.look.receivers([...meshesOf(room), ...fallback.meshes]);
+    this.look.captureReflections([...meshesOf(room), ...meshesOf(bed), ...meshesOf(monitor), ...meshesOf(tray), ...fallback.meshes], new Vector3(0, 1.3, -0.4));
     this.setView("overview", true);
 
     scene.onPointerObservable.add((pi) => {
@@ -296,6 +311,10 @@ export class SimScene {
       const mesh = MeshBuilder.CreateSphere(`marker-${p.id}`, { diameter: 0.06, segments: 12 }, this.scene);
       mesh.parent = a.node;
       mesh.position.copyFrom(a.local);
+      // Rigs often keep bones in centimetres (scale 0.01); keep the marker 6 cm in the world.
+      const worldScale = new Vector3();
+      a.node.computeWorldMatrix(true).decompose(worldScale);
+      mesh.scaling.set(1 / Math.abs(worldScale.x || 1), 1 / Math.abs(worldScale.y || 1), 1 / Math.abs(worldScale.z || 1));
       mesh.material = this.markerMat;
       mesh.renderingGroupId = 1;
       mesh.metadata = { examPoint: p.id };
@@ -349,18 +368,25 @@ export class SimScene {
     this.monitor.draw(v, dt);
     const rig = this.patient;
     // Breathing at the patient's respiratory rate.
-    if (rig.chest) {
-      const s = 1 + 0.035 * Math.sin((2 * Math.PI * this.t * v.rr) / 60);
-      const cough = this.t < this.coughUntil ? 1 + 0.08 * Math.sin((this.coughUntil - this.t) * 40) : 1;
-      rig.chest.scaling.set(1, s * cough, s);
+    const breath = Math.sin((2 * Math.PI * this.t * v.rr) / 60);
+    const coughing = this.t < this.coughUntil ? Math.sin((this.coughUntil - this.t) * 40) : 0;
+    if (rig.breathe) rig.breathe(breath + 2 * coughing);
+    else if (rig.chest) {
+      const s = 1 + 0.035 * breath;
+      rig.chest.scaling.set(1, s * (1 + 0.08 * coughing), s);
     }
     // Blinking every 2-6 s; each blink closes and opens the lids over 160 ms.
     if (this.t > this.nextBlink + BLINK_S) this.nextBlink = this.t + 2 + Math.random() * 4;
     const phase = (this.t - this.nextBlink) / BLINK_S;
     const blink = phase >= 0 && phase <= 1 ? Math.sin(Math.PI * phase) : 0;
     for (const lid of rig.eyelids) lid.rotationQuaternion = Quaternion.RotationAxis(rig.eyelidAxis, blink * 1.2);
+    rig.blink?.(blink);
     // Pain: a slow restless head movement.
-    if (rig.head && this.appearance.includes("pain")) rig.head.rotation.y = 0.12 * Math.sin(this.t * 0.9) * Math.max(0, Math.sin(this.t * 0.31));
+    if (this.appearance.includes("pain")) {
+      const turn = 0.12 * Math.sin(this.t * 0.9) * Math.max(0, Math.sin(this.t * 0.31));
+      if (rig.headTurn) rig.headTurn(turn);
+      else if (rig.head) rig.head.rotation.y = turn;
+    }
     if (this.appearance.includes("coughing") && Math.sin(this.t * 0.37) > 0.995) this.cough();
   }
 

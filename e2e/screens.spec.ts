@@ -3,7 +3,8 @@ import { expect, test } from "@playwright/test";
 // Not a test of behaviour: captures screenshots of the scene for visual review.
 test.skip(!process.env.SCREENSHOTS, "set SCREENSHOTS=1 to capture");
 test("capture scene screenshots", async ({ page }) => {
-  await page.goto("/");
+  test.setTimeout(600_000); // full-quality effects render in software here
+  await page.goto("/?quality=high");
   await page.screenshot({ path: "docs/screenshots/sign-in.png" });
   await page.getByLabel("Username").fill("student1");
   await page.getByLabel("Password").fill("demo-pass-123");
@@ -48,12 +49,12 @@ test("capture scene screenshots", async ({ page }) => {
 
 async function startOrResume(p: import("@playwright/test").Page) {
   const begin = p.getByRole("button", { name: "Begin" });
-  await expect(begin.or(p.getByText("Resumed where you stopped"))).toBeVisible({ timeout: 60_000 });
+  await expect(begin.or(p.getByText("Resumed where you stopped"))).toBeVisible({ timeout: 180_000 }); // several software-rendered browsers at once
   if (await begin.isVisible()) await begin.click();
 }
 
 test("capture debrief and dashboard screenshots", async ({ page, browser }) => {
-  test.setTimeout(300_000); // three browsers rendering 3D in software is slow
+  test.setTimeout(900_000); // three browsers rendering 3D in software is slow
   // Instructor dashboard watching the seeded session.
   const staff = await (await browser.newContext({ viewport: { width: 1600, height: 900 } })).newPage();
   await staff.goto("/staff/");
